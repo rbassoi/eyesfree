@@ -1,7 +1,7 @@
 import { distanceStatus } from '@eyesfree/core';
 import type { DistanceStatus } from '@eyesfree/core';
 import type { EyesFree } from '@eyesfree/web';
-import type { DistanceMonitor, DistanceReading } from './monitor.js';
+import type { CameraErrorCode, DistanceMonitor, DistanceReading } from './monitor.js';
 
 export interface DistanceGuardMessages {
   /** Templates with `{measured}` and `{target}`. */
@@ -10,6 +10,10 @@ export interface DistanceGuardMessages {
   ok: string;
   noFace: string;
   stop: string;
+  /** Compact indicator while the camera is on and the distance is fine (template `{measured}`). */
+  on: string;
+  starting: string;
+  errors: Record<CameraErrorCode, string>;
 }
 
 export const GUARD_MESSAGES: Record<string, DistanceGuardMessages> = {
@@ -19,6 +23,17 @@ export const GUARD_MESSAGES: Record<string, DistanceGuardMessages> = {
     ok: 'Good distance ✓',
     noFace: 'Camera on: face not found.',
     stop: 'Turn off camera',
+    on: '📷 Camera on · ≈ {measured}',
+    starting: '📷 Starting the camera…',
+    errors: {
+      denied: 'Camera blocked. Click the camera icon in the address bar and allow it, then try again.',
+      'no-camera': 'No camera was found on this device.',
+      busy: 'The camera is being used by another app. Close it and try again.',
+      insecure: 'The camera needs a secure (https) page.',
+      'load-failed': 'Could not download the face detector. Check the internet connection or ad blocker.',
+      timeout: 'The camera took too long to start. Try again.',
+      unknown: 'The camera could not start.',
+    },
   },
   pt: {
     tooClose: 'Afaste-se um pouco: você está a cerca de {measured}, o ideal é {target}.',
@@ -26,6 +41,17 @@ export const GUARD_MESSAGES: Record<string, DistanceGuardMessages> = {
     ok: 'Distância boa ✓',
     noFace: 'Câmera ligada: rosto não encontrado.',
     stop: 'Desligar câmera',
+    on: '📷 Câmera ligada · ≈ {measured}',
+    starting: '📷 Ligando a câmera…',
+    errors: {
+      denied: 'Câmera bloqueada. Clique no ícone de câmera na barra de endereço, permita e tente de novo.',
+      'no-camera': 'Nenhuma câmera foi encontrada neste aparelho.',
+      busy: 'A câmera está sendo usada por outro programa. Feche-o e tente de novo.',
+      insecure: 'A câmera precisa de uma página segura (https).',
+      'load-failed': 'Não foi possível baixar o detector de rosto. Verifique a internet ou o bloqueador de anúncios.',
+      timeout: 'A câmera demorou demais para ligar. Tente de novo.',
+      unknown: 'Não foi possível ligar a câmera.',
+    },
   },
   es: {
     tooClose: 'Aléjese un poco: está a unos {measured}, lo ideal es {target}.',
@@ -33,6 +59,17 @@ export const GUARD_MESSAGES: Record<string, DistanceGuardMessages> = {
     ok: 'Buena distancia ✓',
     noFace: 'Cámara encendida: no se encuentra el rostro.',
     stop: 'Apagar cámara',
+    on: '📷 Cámara encendida · ≈ {measured}',
+    starting: '📷 Encendiendo la cámara…',
+    errors: {
+      denied: 'Cámara bloqueada. Haga clic en el icono de cámara de la barra de direcciones, permítala y vuelva a intentar.',
+      'no-camera': 'No se encontró ninguna cámara en este dispositivo.',
+      busy: 'Otra aplicación está usando la cámara. Ciérrela y vuelva a intentar.',
+      insecure: 'La cámara necesita una página segura (https).',
+      'load-failed': 'No se pudo descargar el detector de rostros. Revise la conexión o el bloqueador de anuncios.',
+      timeout: 'La cámara tardó demasiado en encender. Vuelva a intentar.',
+      unknown: 'No se pudo encender la cámara.',
+    },
   },
 };
 
@@ -46,10 +83,17 @@ export interface DistanceGuardOptions {
   tolerance?: number;
   /** Also show a brief "good distance" confirmation. Default true. */
   showOk?: boolean;
+  /**
+   * Keep a compact "camera on" indicator visible whenever the camera runs (privacy).
+   * Default true.
+   */
+  indicator?: boolean;
   /** Called on every status change (for your own UI / analytics-free logging). */
-  onStatus?: (status: DistanceStatus | 'no-face' | 'idle', reading: DistanceReading) => void;
+  onStatus?: (status: GuardStatus, reading: DistanceReading) => void;
   document?: Document;
 }
+
+export type GuardStatus = DistanceStatus | 'no-face' | 'idle' | 'on' | 'starting' | 'error';
 
 const fmt = (cm: number) => (cm < 100 ? `${Math.round(cm / 5) * 5} cm` : `${Math.round(cm / 10) / 10} m`);
 
@@ -64,6 +108,8 @@ const CSS = `
 }
 .eyesfree-guard[data-status="too-close"] { background: #b45309; }
 .eyesfree-guard[data-status="ok"] { background: #047857; }
+.eyesfree-guard[data-status="error"] { background: #b91c1c; border-radius: 20px; }
+.eyesfree-guard[data-status="on"], .eyesfree-guard[data-status="starting"] { font-size: .85rem !important; opacity: .92; padding: 6px 8px 6px 14px; }
 .eyesfree-guard[hidden] { display: none; }
 .eyesfree-guard button {
   font: inherit; font-size: .8em; cursor: pointer; color: inherit; background: rgba(255,255,255,.18);
@@ -81,7 +127,12 @@ const CSS = `
 export function createDistanceGuard(options: DistanceGuardOptions): () => void {
   const doc = options.document ?? document;
   const locale = (options.locale ?? doc.documentElement.lang ?? 'en').split('-')[0]!.toLowerCase();
-  const m: DistanceGuardMessages = { ...(GUARD_MESSAGES[locale] ?? GUARD_MESSAGES.en!), ...(options.messages ?? {}) };
+  const base = GUARD_MESSAGES[locale] ?? GUARD_MESSAGES.en!;
+  const m: DistanceGuardMessages = {
+    ...base,
+    ...(options.messages ?? {}),
+    errors: { ...base.errors, ...(options.messages?.errors ?? {}) },
+  };
   const tolerance = options.tolerance ?? 0.2;
 
   if (!doc.getElementById('eyesfree-guard-styles')) {
@@ -100,7 +151,12 @@ export function createDistanceGuard(options: DistanceGuardOptions): () => void {
   const stop = doc.createElement('button');
   stop.type = 'button';
   stop.textContent = `📷 ${m.stop}`;
-  stop.addEventListener('click', () => options.monitor.stop());
+  stop.addEventListener('click', () => {
+    if (options.monitor.getReading().status === 'error') {
+      el.hidden = true;
+      lastStatus = 'idle';
+    } else options.monitor.stop();
+  });
   el.append(text, stop);
   doc.body.appendChild(el);
 
@@ -113,28 +169,48 @@ export function createDistanceGuard(options: DistanceGuardOptions): () => void {
     const target = plan.active ? (profile?.viewingDistance ?? 0) : 0;
     el.style.fontSize = `calc(1.1rem * ${plan.active ? plan.fontScale : 1})`;
 
-    let status: DistanceStatus | 'no-face' | 'idle' = 'idle';
-    if (!options.monitor.running || !target) status = 'idle';
-    else if (reading.status === 'no-face' || reading.status === 'starting') status = 'no-face';
+    const indicator = options.indicator !== false;
+    let status: GuardStatus = 'idle';
+    if (reading.status === 'error') status = 'error';
+    else if (reading.status === 'starting') status = 'starting';
+    else if (!options.monitor.running) status = 'idle';
+    else if (reading.status === 'no-face') status = 'no-face';
+    else if (!target) status = 'on';
     else if (reading.cm !== null) status = distanceStatus(reading.cm, target, tolerance);
 
     el.dataset.status = status;
+    stop.hidden = status === 'idle';
+    stop.textContent = status === 'error' ? '✕' : `📷 ${m.stop}`;
+    stop.setAttribute('aria-label', status === 'error' ? 'Close' : m.stop);
     if (status === 'too-close') text.textContent = m.tooClose.replace('{measured}', fmt(reading.cm!)).replace('{target}', fmt(target));
     else if (status === 'too-far') text.textContent = m.tooFar.replace('{target}', fmt(target));
     else if (status === 'no-face') text.textContent = m.noFace;
     else if (status === 'ok') text.textContent = m.ok;
+    else if (status === 'on') text.textContent = m.on.replace('{measured}', reading.cm !== null ? fmt(reading.cm) : '…');
+    else if (status === 'starting') text.textContent = m.starting;
+    else if (status === 'error') text.textContent = m.errors[reading.errorCode ?? 'unknown'];
 
+    // While the camera runs, a compact indicator replaces the hidden "ok" state (privacy).
+    const showCompactOn = indicator && options.monitor.running && reading.cm !== null;
     if (status !== lastStatus) {
       lastStatus = status;
       options.onStatus?.(status, reading);
       if (okTimer) clearTimeout(okTimer);
       okTimer = null;
       if (status === 'ok') {
-        el.hidden = options.showOk === false;
-        okTimer = setTimeout(() => (el.hidden = true), 2500);
+        el.hidden = options.showOk === false && !indicator;
+        okTimer = setTimeout(() => {
+          if (indicator && options.monitor.running) {
+            el.dataset.status = 'on';
+            text.textContent = m.on.replace('{measured}', fmt(options.monitor.getReading().cm ?? target));
+          } else el.hidden = true;
+        }, 2500);
       } else {
-        el.hidden = status === 'idle';
+        el.hidden = status === 'idle' || (status === 'on' && !indicator);
       }
+    } else if (status === 'ok' && !okTimer && showCompactOn) {
+      el.dataset.status = 'on';
+      text.textContent = m.on.replace('{measured}', fmt(reading.cm!));
     }
   };
 

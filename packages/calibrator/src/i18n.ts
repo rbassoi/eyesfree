@@ -20,6 +20,9 @@ export interface CalibratorMessages {
   /** Template with `{distance}`. */
   measuredDistance: string;
   cameraError: string;
+  cameraDenied: string;
+  cameraNotFound: string;
+  cameraBusy: string;
   cameraPrivacy: string;
   /** Step 2 — text size. */
   sizeInstruction: string;
@@ -66,6 +69,9 @@ export const en: CalibratorMessages = {
   measuring: 'Looking for your face…',
   measuredDistance: 'You are about {distance} from the screen',
   cameraError: 'The camera is not available. Choose the distance below.',
+  cameraDenied: 'Camera blocked. Click the camera icon in the address bar, allow it and try again — or choose the distance below.',
+  cameraNotFound: 'No camera was found. Choose the distance below.',
+  cameraBusy: 'Another app is using the camera. Close it and try again — or choose the distance below.',
   cameraPrivacy: 'The image is analysed on this device only and never saved or sent.',
   sizeInstruction: 'From where you are now, tap the SMALLEST text you can read comfortably.',
   sizeSample: '$84.50 · 2 PM',
@@ -119,6 +125,9 @@ export const ptBR: CalibratorMessages = {
   measuring: 'Procurando seu rosto…',
   measuredDistance: 'Você está a cerca de {distance} da tela',
   cameraError: 'A câmera não está disponível. Escolha a distância abaixo.',
+  cameraDenied: 'Câmera bloqueada. Clique no ícone de câmera na barra de endereço, permita e tente de novo — ou escolha a distância abaixo.',
+  cameraNotFound: 'Nenhuma câmera encontrada. Escolha a distância abaixo.',
+  cameraBusy: 'Outro programa está usando a câmera. Feche-o e tente de novo — ou escolha a distância abaixo.',
   cameraPrivacy: 'A imagem é analisada só neste aparelho; nunca é salva nem enviada.',
   sizeInstruction: 'De onde você está agora, toque no MENOR texto que consegue ler com conforto.',
   sizeSample: 'R$ 84,50 · 14h',
@@ -171,6 +180,9 @@ export const es: CalibratorMessages = {
   measuring: 'Buscando su rostro…',
   measuredDistance: 'Está a unos {distance} de la pantalla',
   cameraError: 'La cámara no está disponible. Elija la distancia abajo.',
+  cameraDenied: 'Cámara bloqueada. Haga clic en el icono de cámara de la barra de direcciones, permítala y vuelva a intentar, o elija la distancia abajo.',
+  cameraNotFound: 'No se encontró ninguna cámara. Elija la distancia abajo.',
+  cameraBusy: 'Otra aplicación está usando la cámara. Ciérrela y vuelva a intentar, o elija la distancia abajo.',
   cameraPrivacy: 'La imagen se analiza solo en este dispositivo; nunca se guarda ni se envía.',
   sizeInstruction: 'Desde donde está ahora, toque el texto MÁS PEQUEÑO que puede leer con comodidad.',
   sizeSample: '$84,50 · 14 h',

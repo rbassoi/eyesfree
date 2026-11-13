@@ -15,17 +15,26 @@ const { engine } = mount({ root: '#app-root', openSelector: false });
 const $ = (sel) => document.querySelector(sel);
 
 // Camera distance monitor (opt-in) + on-screen guard ("move back a little").
+const CAMERA_ERRORS = {
+  denied: 'Blocked: allow the camera in the address bar',
+  'no-camera': 'No camera found on this device',
+  busy: 'Camera in use by another app',
+  insecure: 'Needs an https page',
+  'load-failed': 'Could not download the face detector',
+  timeout: 'Took too long to start, try again',
+  unknown: 'Camera could not start',
+};
 const monitor = new DistanceMonitor();
 createDistanceGuard({ engine, monitor, locale: 'en' });
 monitor.subscribe((r) => {
   const btn = $('#btn-camera');
   btn.setAttribute('aria-pressed', String(monitor.running));
-  btn.textContent = monitor.running ? '📷 Camera: ON' : '📷 Camera: OFF';
+  btn.textContent = r.status === 'starting' ? '📷 Starting…' : monitor.running ? '📷 Camera: ON' : r.status === 'error' ? '📷 Try again' : '📷 Camera: OFF';
   $('#camera-reading').textContent =
     r.status === 'measuring' ? `≈ ${r.cm} cm (${r.estimate.method})`
     : r.status === 'starting' ? 'starting…'
     : r.status === 'no-face' ? 'no face found'
-    : r.status === 'error' ? `error: ${r.error?.name ?? r.error}`
+    : r.status === 'error' ? (CAMERA_ERRORS[r.errorCode] ?? CAMERA_ERRORS.unknown)
     : '—';
 });
 $('#btn-camera').addEventListener('click', () => {
@@ -37,7 +46,7 @@ $('#btn-camera').addEventListener('click', () => {
 //    stays readable from the distance the user moved back to.
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-open-calibrator]')) return;
-  const handle = openCalibratorDialog({ engine, locale: $('#locale').value, distanceMonitor: monitor });
+  const handle = openCalibratorDialog({ engine, locale: $('#locale').value, distanceMonitor: monitor, keepCameraOn: true });
   handle.element.start();
 });
 

@@ -85,7 +85,7 @@ export interface DistanceMonitorLike {
   readonly running: boolean;
   start(): Promise<void>;
   stop(): void;
-  subscribe(listener: (reading: { status: string; cm: number | null }) => void): () => void;
+  subscribe(listener: (reading: { status: string; cm: number | null; errorCode?: string }) => void): () => void;
 }
 
 let uidCounter = 0;
@@ -129,6 +129,14 @@ export class EyesFreeCalibratorElement extends BaseElement {
    * which selects the distance automatically.
    */
   distanceMonitor: DistanceMonitorLike | null = null;
+  /**
+   * Leave the camera on after the camera was used in step 1 (so an app-level distance
+   * guard keeps working). The app is then responsible for showing a camera indicator and
+   * a way to turn it off (`createDistanceGuard` does). Default `false`: the calibrator
+   * turns off a camera it started when leaving step 1.
+   */
+  keepCameraOn = false;
+  private cameraErrorCode = '';
   private unsubscribeMonitor: (() => void) | null = null;
   private startedMonitor = false;
   private cameraState: 'off' | 'measuring' | 'error' = 'off';
@@ -203,6 +211,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
 
   /** Emits `eyesfree-cancel` (and resumes a suspended engine). */
   cancel(): void {
+    this.stopCamera(true); // a cancelled session never leaves a camera it started running
     this.release();
     this.fire(CALIBRATOR_EVENTS.cancel, {});
   }
@@ -249,22 +258,29 @@ export class EyesFreeCalibratorElement extends BaseElement {
         this.startedMonitor = true;
         await monitor.start();
       }
-    } catch {
-      this.stopCamera();
+    } catch (e) {
+      this.cameraErrorCode = (e as { name?: string })?.name ?? '';
+      this.stopCamera(true);
       this.cameraState = 'error';
       this.renderIfConnected();
     }
   }
 
-  private stopCamera(): void {
+  private stopCamera(force = false): void {
     this.unsubscribeMonitor?.();
     this.unsubscribeMonitor = null;
-    if (this.startedMonitor) this.distanceMonitor?.stop();
-    this.startedMonitor = false;
+    if (this.startedMonitor && (force || !this.keepCameraOn)) {
+      this.distanceMonitor?.stop();
+      this.startedMonitor = false;
+    }
     if (this.cameraState === 'measuring') this.cameraState = 'off';
   }
 
-  private onReading(r: { status: string; cm: number | null }): void {
+  private onReading(r: { status: string; cm: number | null; errorCode?: string }): void {
+    if (r.status === 'error') {
+      this.cameraErrorCode = r.errorCode ?? '';
+      return;
+    }
     const out = this.querySelector('[data-measured]');
     if (!out) return;
     if (r.cm !== null && r.status === 'measuring') {
@@ -346,7 +362,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
                ${btn('camera-stop', 'efc-btn-secondary', `📷 ${esc(m.stopCamera)}`)}
              </div>`
           : `<div class="efc-camera">
-               ${this.cameraState === 'error' ? `<p class="efc-hint">${esc(m.cameraError)}</p>` : ''}
+               ${this.cameraState === 'error' ? `<p class="efc-camera-error" role="alert">${esc(this.cameraErrorText(m))}</p>` : ''}
                ${btn('camera', 'efc-btn-primary', `📷 ${esc(m.measureWithCamera)}`)}
                <p class="efc-hint">${esc(m.cameraPrivacy)}</p>
              </div>`;
@@ -507,6 +523,14 @@ export class EyesFreeCalibratorElement extends BaseElement {
     });
     if (patch.crowding !== undefined || patch.blurRadius !== undefined) this.updatePreviews();
     this.fire<CalibratorChangeDetail>(CALIBRATOR_EVENTS.change, { profile: d, step: this._step });
+  }
+
+  private cameraErrorText(m: CalibratorMessages): string {
+    const c = this.cameraErrorCode;
+    if (c === 'denied' || c === 'NotAllowedError' || c === 'SecurityError') return m.cameraDenied;
+    if (c === 'no-camera' || c === 'NotFoundError' || c === 'OverconstrainedError') return m.cameraNotFound;
+    if (c === 'busy' || c === 'NotReadableError') return m.cameraBusy;
+    return m.cameraError;
   }
 
   /** Choosing a distance also suggests the matching magnification. */

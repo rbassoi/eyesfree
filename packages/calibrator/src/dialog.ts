@@ -25,6 +25,8 @@ export interface CalibratorDialogOptions {
   autoApply?: boolean;
   /** Camera distance monitor (enables "Measure with the camera" in step 1). */
   distanceMonitor?: DistanceMonitorLike | null;
+  /** Keep the camera on after calibration (for an app-level distance guard). Default false. */
+  keepCameraOn?: boolean;
   /** Accessible name of the dialog. Default: the calibrator title. */
   label?: string;
   doc?: Document;
@@ -66,6 +68,7 @@ export function openCalibratorDialog(options: CalibratorDialogOptions = {}): Cal
   el.engine = options.engine ?? null;
   el.autoApply = options.autoApply ?? true;
   el.distanceMonitor = options.distanceMonitor ?? null;
+  el.keepCameraOn = options.keepCameraOn ?? false;
   if (options.messages) el.messages = options.messages;
   if (options.locale) el.setAttribute('locale', options.locale);
   dialog.appendChild(el);

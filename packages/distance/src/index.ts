@@ -11,9 +11,9 @@
  *
  * Original project: https://github.com/rbassoi/eyesfree — Apache-2.0
  */
-export { DistanceMonitor } from './monitor.js';
-export type { DistanceMonitorOptions, DistanceMonitorStatus, DistanceReading } from './monitor.js';
+export { classifyCameraError, DistanceMonitor } from './monitor.js';
+export type { CameraErrorCode, DistanceMonitorOptions, DistanceMonitorStatus, DistanceReading } from './monitor.js';
 export { candidateRegions, LANDMARKS, measureFromLandmarks, MEDIAPIPE_DEFAULTS, mediapipeFaceSource } from './mediapipe.js';
 export type { FaceSource, MediaPipeSourceOptions } from './mediapipe.js';
 export { createDistanceGuard, GUARD_MESSAGES } from './guard.js';
-export type { DistanceGuardMessages, DistanceGuardOptions } from './guard.js';
+export type { DistanceGuardMessages, DistanceGuardOptions, GuardStatus } from './guard.js';

@@ -13,7 +13,7 @@ import type { FaceMeasurement } from '@eyesfree/core';
 import { EyesFree } from '@eyesfree/web';
 import { CALIBRATOR_EVENTS, defineCalibrator } from '@eyesfree/calibrator';
 import type { EyesFreeCalibratorElement } from '@eyesfree/calibrator';
-import { candidateRegions, createDistanceGuard, DistanceMonitor, LANDMARKS, measureFromLandmarks } from '@eyesfree/distance';
+import { candidateRegions, classifyCameraError, createDistanceGuard, DistanceMonitor, LANDMARKS, measureFromLandmarks } from '@eyesfree/distance';
 import type { FaceSource } from '@eyesfree/distance';
 
 const W = 1280;
@@ -126,7 +126,34 @@ describe('DistanceMonitor', () => {
       camera: () => Promise.reject(new DOMException('denied', 'NotAllowedError')),
     });
     await expect(monitor.start()).rejects.toThrow('denied');
-    expect(monitor.getReading().status).toBe('error');
+    expect(monitor.getReading()).toMatchObject({ status: 'error', errorCode: 'denied' });
+  });
+
+  it('classifies camera and detector failures into actionable codes', async () => {
+    const named = (name: string) => Object.assign(new Error(name), { name });
+    expect(classifyCameraError(named('NotFoundError'), 'camera')).toBe('no-camera');
+    expect(classifyCameraError(named('NotReadableError'), 'camera')).toBe('busy');
+    expect(classifyCameraError(new TypeError('x'), 'detector')).toBe('load-failed');
+    const failing: FaceSource = { init: () => Promise.reject(new TypeError('Failed to fetch')), measure: () => null, close: () => undefined };
+    const stopTrack = vi.fn();
+    const m = new DistanceMonitor({
+      source: failing,
+      camera: async () => ({ getTracks: () => [{ stop: stopTrack }] }) as unknown as MediaStream,
+    });
+    await expect(m.start()).rejects.toThrow('Failed to fetch');
+    expect(m.getReading().errorCode).toBe('load-failed');
+    await wait(0);
+    expect(stopTrack).toHaveBeenCalled(); // camera that did open is released
+  });
+
+  it('times out instead of hanging on "starting"', async () => {
+    const m = new DistanceMonitor({
+      source: { init: () => new Promise(() => undefined), measure: () => null, close: () => undefined },
+      camera: fakeCamera,
+      startTimeoutMs: 20,
+    });
+    await expect(m.start()).rejects.toThrow('timed out');
+    expect(m.getReading().errorCode).toBe('timeout');
   });
 });
 
@@ -146,9 +173,27 @@ describe('createDistanceGuard', () => {
     expect(pill.style.fontSize).toMatch(/2\.75rem|2\.5/); // 1.1rem × fontScale 2.5
     for (let i = 0; i < 60; i++) monitor.push(faceAt(100));
     expect(pill.dataset.status).toBe('ok');
+    expect(pill.hidden).toBe(false); // camera indicator stays visible while the camera runs
     monitor.stop();
+    expect(pill.hidden).toBe(true);
     remove();
     expect(document.querySelector('.eyesfree-guard')).toBeNull();
+  });
+});
+
+describe('guard errors', () => {
+  it('explains a blocked camera in plain words', async () => {
+    const engine = new EyesFree({ storage: false, sync: false });
+    await engine.init();
+    const monitor = new DistanceMonitor({
+      source: fakeSource({ cm: 50 }),
+      camera: () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })),
+    });
+    createDistanceGuard({ engine, monitor, locale: 'pt-BR' });
+    await monitor.start().catch(() => undefined);
+    const pill = document.querySelector<HTMLElement>('.eyesfree-guard')!;
+    expect(pill.dataset.status).toBe('error');
+    expect(pill.textContent).toContain('Câmera bloqueada');
   });
 });
 
@@ -171,5 +216,33 @@ describe('calibrator camera step', () => {
     // Leaving step 1 turns the camera off (the calibrator started it).
     (el.querySelector('[data-action="next"]') as HTMLElement).click();
     expect(monitor.running).toBe(false);
+  });
+
+  it('keepCameraOn leaves the camera running for the app guard', async () => {
+    const monitor = new DistanceMonitor({ source: fakeSource({ cm: 95 }), camera: fakeCamera, intervalMs: 1000 });
+    const el = document.createElement('eyesfree-calibrator') as EyesFreeCalibratorElement;
+    el.distanceMonitor = monitor;
+    el.keepCameraOn = true;
+    document.body.appendChild(el);
+    el.start();
+    (el.querySelector('[data-action="camera"]') as HTMLElement).click();
+    await wait(10);
+    (el.querySelector('[data-action="next"]') as HTMLElement).click();
+    expect(monitor.running).toBe(true);
+    el.cancel(); // cancelling still turns it off
+    expect(monitor.running).toBe(false);
+  });
+
+  it('shows a specific message when the camera is blocked', async () => {
+    const monitor = new DistanceMonitor({
+      source: fakeSource({ cm: 95 }),
+      camera: () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })),
+    });
+    const el = document.createElement('eyesfree-calibrator') as EyesFreeCalibratorElement;
+    el.distanceMonitor = monitor;
+    document.body.appendChild(el);
+    (el.querySelector('[data-action="camera"]') as HTMLElement).click();
+    await wait(10);
+    expect(el.querySelector('.efc-camera-error')!.textContent).toContain('Camera blocked');
   });
 });

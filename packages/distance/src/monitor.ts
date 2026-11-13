@@ -5,12 +5,49 @@ import type { FaceSource } from './mediapipe.js';
 
 export type DistanceMonitorStatus = 'stopped' | 'starting' | 'measuring' | 'no-face' | 'error';
 
+/** Why the camera could not start — map these to friendly, actionable messages. */
+export type CameraErrorCode =
+  /** The user or browser blocked camera access. */
+  | 'denied'
+  /** No camera on this device. */
+  | 'no-camera'
+  /** Another app (video call, camera app) is using the camera. */
+  | 'busy'
+  /** Page not served over HTTPS (or API unavailable). */
+  | 'insecure'
+  /** The face detector could not be downloaded (offline, firewall, ad blocker). */
+  | 'load-failed'
+  /** Starting took too long. */
+  | 'timeout'
+  | 'unknown';
+
+/** Classifies an error thrown while starting the camera or the detector. */
+export function classifyCameraError(error: unknown, stage: 'camera' | 'detector' | 'timeout'): CameraErrorCode {
+  if (stage === 'timeout') return 'timeout';
+  if (stage === 'detector') return 'load-failed';
+  const name = (error as { name?: string } | null)?.name ?? '';
+  if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') return 'denied';
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') return 'no-camera';
+  if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') return 'busy';
+  if (name === 'InsecureContextError' || name === 'TypeError') return 'insecure';
+  return 'unknown';
+}
+
+class StageError extends Error {
+  constructor(readonly stage: 'camera' | 'detector' | 'timeout', readonly cause: unknown) {
+    super((cause as Error)?.message ?? String(cause));
+    this.name = (cause as Error)?.name ?? 'Error';
+  }
+}
+
 export interface DistanceReading {
   status: DistanceMonitorStatus;
   /** Smoothed distance in cm, or null when unknown. */
   cm: number | null;
   estimate?: DistanceEstimate;
   error?: unknown;
+  /** Set when `status === 'error'`. */
+  errorCode?: CameraErrorCode;
 }
 
 export interface DistanceMonitorOptions {
@@ -26,16 +63,24 @@ export interface DistanceMonitorOptions {
   intervalMs?: number;
   /** Opens the camera. Default: `getUserMedia` front camera at 1280×720. */
   camera?: () => Promise<MediaStream>;
+  /** Max time (ms) to wait for camera + detector to start. Default 45 000 (first download is ~4 MB). */
+  startTimeoutMs?: number;
   document?: Document;
 }
 
 const isTouch = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
-const defaultCamera = () =>
-  navigator.mediaDevices.getUserMedia({
+const defaultCamera = () => {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    const e = new Error('Camera API unavailable (the page must be served over HTTPS)');
+    e.name = 'InsecureContextError';
+    return Promise.reject(e);
+  }
+  return navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });
+};
 
 /**
  * Measures how far the user is from the screen with the front camera.
@@ -95,8 +140,29 @@ export class DistanceMonitor {
 
   private async doStart(): Promise<void> {
     this.set({ status: 'starting', cm: null });
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const [stream] = await Promise.all([(this.options.camera ?? defaultCamera)(), this.source.init()]);
+      const tag = <T>(p: Promise<T>, stage: 'camera' | 'detector') =>
+        p.catch((e: unknown) => {
+          throw new StageError(stage, e);
+        });
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new StageError('timeout', new Error('Camera start timed out'))),
+          this.options.startTimeoutMs ?? 45000,
+        );
+      });
+      const camera = tag((this.options.camera ?? defaultCamera)(), 'camera');
+      // If anything fails, make sure a camera that did open is released.
+      camera
+        .then((s) => {
+          // Opened after a timeout/failure/stop: close it right away.
+          if (this.reading.status !== 'starting') s.getTracks().forEach((t) => t.stop());
+          else this.stream = s;
+        })
+        .catch(() => undefined);
+      const [stream] = await Promise.race([Promise.all([camera, tag(this.source.init(), 'detector')]), timeout]);
+      clearTimeout(timer);
       this.stream = stream;
       const doc = this.options.document ?? document;
       const video = doc.createElement('video');
@@ -113,10 +179,13 @@ export class DistanceMonitor {
       this.set({ status: 'no-face', cm: null });
       this.loop();
     } catch (error) {
+      clearTimeout(timer);
       this.startPromise = null;
       this.release();
-      this.set({ status: 'error', cm: null, error });
-      throw error;
+      const stage = error instanceof StageError ? error.stage : 'camera';
+      const cause = error instanceof StageError ? error.cause : error;
+      this.set({ status: 'error', cm: null, error: cause, errorCode: classifyCameraError(cause, stage) });
+      throw cause;
     }
   }
 

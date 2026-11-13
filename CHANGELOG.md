@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [0.4.0] - 2026-11-13
 
+### Fixed (after first user test)
+- Camera errors are now explained in plain words (blocked, no camera, in use by another app,
+  detector download failed, timeout) instead of failing silently; `reading.errorCode`,
+  `classifyCameraError()`. Starting can no longer hang (`startTimeoutMs`, default 45 s), and a
+  camera that opens after a failure is closed immediately.
+- The calibrator no longer turns the camera off after measuring when the app wants the distance
+  guard (`keepCameraOn` / `openCalibratorDialog({ keepCameraOn })`); cancelling still turns it off.
+- The guard keeps a compact "📷 Camera on" indicator visible whenever the camera runs (privacy).
+- Demo toolbar cards no longer overflow at narrow widths.
+
 ### Added
 - **`@eyesfree/distance`** (new package): opt-in, on-device camera distance measurement.
   - `DistanceMonitor`: front camera + MediaPipe Face Landmarker (Apache-2.0, lazy-loaded,
