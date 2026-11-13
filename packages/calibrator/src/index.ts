@@ -10,7 +10,15 @@
  */
 import { EyesFreeCalibratorElement } from './element.js';
 
-export { CALIBRATOR_EVENTS, CALIBRATOR_STEPS, EyesFreeCalibratorElement, GHOST_OPTIONS, SHARPNESS_OPTIONS, SIZE_OPTIONS } from './element.js';
+export {
+  CALIBRATOR_EVENTS,
+  CALIBRATOR_STEPS,
+  DISTANCE_CHOICES,
+  EyesFreeCalibratorElement,
+  GHOST_OPTIONS,
+  SHARPNESS_OPTIONS,
+  sizeOptionsAround,
+} from './element.js';
 export type { CalibratorChangeDetail, CalibratorCompleteDetail, CalibratorStep } from './element.js';
 export { en, es, formatStep, LOCALES, mergeMessages, ptBR, registerLocale, resolveLocale } from './i18n.js';
 export type { CalibratorMessages } from './i18n.js';

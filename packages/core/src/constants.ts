@@ -7,12 +7,25 @@ export const SHARPNESS_LEVELS: readonly SharpnessLevel[] = ['none', 'mild', 'med
 export const CROWDING_LEVELS: readonly CrowdingLevel[] = [0, 1, 2, 3];
 
 export const INTENSITY_RANGE = { min: 0.25, max: 2 } as const;
-export const FONT_SCALE_RANGE = { min: 1, max: 2 } as const;
+export const FONT_SCALE_RANGE = { min: 1, max: 4 } as const;
+/** Viewing distance hint in cm. 0 = unknown / normal reading distance. */
+export const VIEWING_DISTANCE_RANGE = { min: 0, max: 300 } as const;
+
+/** Distance at which text is normally read (cm); magnification is relative to it. */
+export const REFERENCE_READING_DISTANCE_CM = 40;
+
+/**
+ * Distances offered by the calibrator's distance step (cm). A presbyopic eye without its
+ * reading glasses focuses sharply only beyond a certain distance (≈ 100 / remaining
+ * accommodation in dioptres); sitting there and magnifying is the one approach that gives
+ * truly sharp text.
+ */
+export const DISTANCE_OPTIONS_CM: readonly number[] = [50, 70, 100, 130, 160, 200];
 /** Blur radius (Gaussian σ, CSS px). 0 selects the legacy 3×3 kernel. */
 export const BLUR_RADIUS_RANGE = { min: 0, max: 12 } as const;
 
 /** Text-size options offered by the calibrator. */
-export const FONT_SCALE_STEPS: readonly number[] = [1, 1.25, 1.5, 1.75, 2];
+export const FONT_SCALE_STEPS: readonly number[] = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4];
 
 /**
  * Blur-radius stops offered by the calibrator slider (σ in CSS px).
@@ -121,4 +134,5 @@ export const DEFAULT_PROFILE: Readonly<VisionProfile> = Object.freeze({
   intensity: 1,
   surfaceCompensation: true,
   fontScale: 1,
+  viewingDistance: 0,
 } as VisionProfile);

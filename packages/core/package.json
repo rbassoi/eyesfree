@@ -1,6 +1,6 @@
 {
   "name": "@eyesfree/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Framework-agnostic vision profile model, convolution kernels and render plans for EyesFree.",
   "license": "Apache-2.0",
   "type": "module",

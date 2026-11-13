@@ -1,6 +1,6 @@
 # EyesFree 👓
 
-**Read the screen without your glasses.** EyesFree is an open-source accessibility toolkit that pre-compensates on-screen text for people with presbyopia, mild myopia or astigmatism who don't have their glasses at hand. It needs no prescription: a three-step visual calibration does the job.
+**Read the screen without your glasses.** EyesFree is an open-source accessibility toolkit that pre-compensates on-screen text for people with presbyopia, mild myopia or astigmatism who don't have their glasses at hand. It needs no prescription: a short visual calibration does the job.
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
@@ -10,7 +10,7 @@
 **▶ [Live demo](https://rbassoi.github.io/eyesfree/)**
 
 <p align="center">
-  <img src="docs/assets/demo-calibration.png" alt="Step 2 of the EyesFree calibration: a blur-size slider and four sharpening levels previewed on a sample sentence" width="49%">
+  <img src="docs/assets/demo-calibration.png" alt="Step 2 of the EyesFree calibration, magnified to be readable from 1 m: candidate text sizes shown at their real size" width="49%">
   <img src="docs/assets/demo-active.png" alt="A banking app with EyesFree compensation applied: sharpened text, wider spacing and a low-glare background" width="49%">
 </p>
 
@@ -24,15 +24,17 @@ Older adults lose or forget their glasses constantly, yet they still need to con
 
 EyesFree takes a different route, **perceptual calibration**:
 
-1. **Step 1 – text size.** The user taps the *smallest* sample they can read without effort. Magnification is the single most effective aid for presbyopia, so the whole app is enlarged and reflowed accordingly.
-2. **Step 2 – blur size and sharpening (presbyopia / myopia).** The user moves a slider until the sample sentences look sharpest, then taps the easiest one. This sizes a large-radius inverse-blur filter to *their* blur (typically 5–20 screen pixels at reading distance) and slightly thickens strokes.
-3. **Step 3 – doubled letters and spacing (astigmatism / crowding).** The user taps the card where `E A O` look *least doubled* and adjusts letter separation.
-4. **Apply.** The choice is stored as a tiny profile and applied to the whole app: magnification, a sharpening SVG filter, ghost-cancelling text shadows, anti-crowding spacing and a low-glare surface that gives bright halos real luminance headroom.
+1. **Step 1 – distance.** Without reading glasses, a presbyopic eye still focuses sharply, only *farther away*. The user moves back until large sample letters look **sharp** and says roughly how far they are (for example 1 m).
+2. **Step 2 – size.** From there, the user taps the smallest text they can read. EyesFree suggests the magnification that restores the normal reading size (distance ÷ 40 cm, so 1 m → 250 %) and enlarges and reflows the whole app. The wizard magnifies *itself* too, so it stays readable from the chair.
+3. **Optional fine-tuning.** Blur-sized pre-sharpening, a stroke boost, ghost cancellation for astigmatism and anti-crowding spacing, for people who must stay close to the screen.
+4. **Apply.** The choice is stored as a tiny profile and applied to the whole app.
+
+> **Why distance first?** No software can make text optically sharp for an eye that cannot focus at that distance, because the blur happens inside the eye. Distance + magnification gives **truly sharp** text. It was validated by a +2.50 reading-glasses user, who saw sharp text at 1 m with 250 % zoom, exactly the suggested value. Sharpening filters only make blurred text *more legible*.
 
 No diopters, no medical data, no account: just "which one looks better?".
 
 <p align="center"><img src="docs/assets/simulated-comparison.png" alt="The same screen seen through a simulated +2.00 uncorrected eye: without compensation, with the v0.1 3x3 kernel (no visible difference), and with v0.2 (150% text and blur-sized sharpening), where the text is readable" width="100%"></p>
-<p align="center"><sub>Simulated +2.00 D eye (σ = 2.5 px). Left: no compensation · middle: v0.1 3×3 kernel (no visible gain) · right: v0.2.</sub></p>
+<p align="center"><sub>Simulated +2.00 D eye seen from reading distance (σ = 2.5 px). Left: no compensation · middle: v0.1 3×3 kernel (no visible gain) · right: v0.2 size + sharpening (more legible, but still blurred: sitting farther away is what makes it sharp).</sub></p>
 
 ## Features
 
@@ -41,7 +43,7 @@ No diopters, no medical data, no account: just "which one looks better?".
 - 🧩 **`<eyesfree-calibrator>` Web Component**: works with React, Vue, Angular, Svelte, Solid, Lit or plain HTML. Accessible (WAI-ARIA radio groups, keyboard navigation, 56 px targets) and localised (English, Português, Español, plus your own).
 - ⚛️ **React** and 📱 **React Native / Expo** bindings.
 - 🧵 **Web Worker image compensator** for canvas, charts, maps and rendered PDFs. It produces bit-identical output to the main-thread fallback.
-- 🔗 **Portable profile code** (`EF1.hm211.100.150.250`): hand a profile from a native shell to a WebView, a QR code, a deep link or a support agent.
+- 🔗 **Portable profile code** (`EF1.nn211.100.250.300.100`): hand a profile from a native shell to a WebView, a QR code, a deep link or a support agent.
 - 💾 **Pluggable storage**: localStorage, AsyncStorage, IndexedDB or your own backend API.
 - 🔄 **Cross-tab sync**, **SSR-safe**, **CSP-friendly** (static worker and CSS files, nonce support).
 - 📐 **Open spec** with a JSON Schema, so Flutter, Swift and Kotlin apps can interoperate.
@@ -145,7 +147,7 @@ git clone https://github.com/rbassoi/eyesfree.git
 cd eyesfree
 npm install
 npm run demo        # builds everything and serves http://localhost:5173
-npm test            # 53 tests: core maths, engine, worker, Web Component, React, React Native
+npm test            # 57 tests: core maths, engine, worker, Web Component, React, React Native
 ```
 
 In the demo, press **Simulate eye** to blur the phone the way an uncorrected eye would. Then calibrate and compare.

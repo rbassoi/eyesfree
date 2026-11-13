@@ -14,7 +14,8 @@
     "crowding",
     "intensity",
     "surfaceCompensation",
-    "fontScale"
+    "fontScale",
+    "viewingDistance"
   ],
   "properties": {
     "version": {
@@ -76,9 +77,16 @@
     "fontScale": {
       "type": "number",
       "minimum": 1,
-      "maximum": 2,
+      "maximum": 4,
       "default": 1,
-      "description": "Step 1: text magnification."
+      "description": "Step 2: text magnification."
+    },
+    "viewingDistance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 300,
+      "default": 0,
+      "description": "Step 1: distance in cm at which the user sees sharply without glasses. 0 = unknown / normal reading distance."
     },
     "updatedAt": {
       "type": "string",

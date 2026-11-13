@@ -23,6 +23,9 @@ export type {
 export {
   BLUR_RADIUS_RANGE,
   BLUR_RADIUS_STEPS,
+  DISTANCE_OPTIONS_CM,
+  REFERENCE_READING_DISTANCE_CM,
+  VIEWING_DISTANCE_RANGE,
   CROWDING_LEVELS,
   CROWDING_SPACING,
   DEFAULT_PROFILE,
@@ -53,6 +56,7 @@ export {
   isVisionProfile,
   normalizeProfile,
   profilesEqual,
+  suggestFontScale,
   updateProfile,
   validateProfile,
 } from './profile.js';
@@ -61,4 +65,4 @@ export { createRenderPlan, ghostKernel, INACTIVE_PLAN } from './plan.js';
 export { compensatePixels, convolveRGBA, toneMapRGBA, unsharpRGBA } from './image.js';
 
 /** Library version. */
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';

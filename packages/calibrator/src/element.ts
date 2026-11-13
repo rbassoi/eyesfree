@@ -1,4 +1,13 @@
-import { BLUR_RADIUS_STEPS, createRenderPlan, DEFAULT_PROFILE, FONT_SCALE_STEPS, normalizeProfile } from '@eyesfree/core';
+import {
+  BLUR_RADIUS_STEPS,
+  createRenderPlan,
+  DEFAULT_PROFILE,
+  DISTANCE_OPTIONS_CM,
+  FONT_SCALE_RANGE,
+  normalizeProfile,
+  REFERENCE_READING_DISTANCE_CM,
+  suggestFontScale,
+} from '@eyesfree/core';
 import type { CrowdingLevel, GhostAxis, RenderPlan, SharpnessLevel, VisionProfile } from '@eyesfree/core';
 import { applyPreview, removeFilter } from '@eyesfree/web';
 import type { EyesFree } from '@eyesfree/web';
@@ -10,12 +19,15 @@ import { ensureCalibratorStyles } from './styles.js';
 export const GHOST_OPTIONS: readonly GhostAxis[] = ['none', 'horizontal', 'vertical', 'diagonal135', 'diagonal45', 'outline'];
 /** Order of the sharpness options. */
 export const SHARPNESS_OPTIONS: readonly SharpnessLevel[] = ['none', 'mild', 'medium', 'strong'];
-/** Text-size options (fontScale). */
-export const SIZE_OPTIONS: readonly number[] = FONT_SCALE_STEPS;
+/** Distances offered in step 1 (cm). The first one is the normal reading distance. */
+export const DISTANCE_CHOICES: readonly number[] = [REFERENCE_READING_DISTANCE_CM, ...DISTANCE_OPTIONS_CM];
 
-/** 1 = text size · 2 = sharpness + blur size · 3 = doubled letters + spacing. */
-export type CalibratorStep = 1 | 2 | 3;
-export const CALIBRATOR_STEPS = 3;
+/**
+ * 1 = viewing distance · 2 = text size · 3 = sharpness + blur size (optional) ·
+ * 4 = doubled letters + spacing (optional).
+ */
+export type CalibratorStep = 1 | 2 | 3 | 4;
+export const CALIBRATOR_STEPS = 4;
 
 export interface CalibratorChangeDetail {
   profile: VisionProfile;
@@ -40,6 +52,28 @@ const esc = (s: string) =>
 const radiusIndex = (radius: number) =>
   BLUR_RADIUS_STEPS.reduce((best, r, i) => (Math.abs(r - radius) < Math.abs(BLUR_RADIUS_STEPS[best]! - radius) ? i : best), 0);
 
+/** Candidate sizes around a suggestion (±1 in 0.5 steps, clamped to 1–4). */
+export function sizeOptionsAround(suggestion: number): number[] {
+  const out = new Set<number>();
+  for (const k of [-1, -0.5, 0, 0.5, 1]) {
+    const v = Math.min(FONT_SCALE_RANGE.max, Math.max(FONT_SCALE_RANGE.min, suggestion + k));
+    out.add(Math.round(v * 4) / 4);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** "50 cm", "1 m", "1.3 m" (+ feet for English). */
+function formatDistance(cm: number, locale: string): string {
+  let nf: Intl.NumberFormat;
+  try {
+    nf = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  } catch {
+    nf = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
+  }
+  const metric = cm < 100 ? `${nf.format(cm)} cm` : `${nf.format(cm / 100)} m`;
+  return locale.toLowerCase().startsWith('en') ? `${metric} (${nf.format(Math.round(cm / 30.48 * 2) / 2)} ft)` : metric;
+}
+
 const DEFAULT_SAMPLE_BG = '#e4e7ec';
 
 let uidCounter = 0;
@@ -49,16 +83,17 @@ const BaseElement: typeof HTMLElement =
   typeof HTMLElement !== 'undefined' ? HTMLElement : (class {} as unknown as typeof HTMLElement);
 
 /**
- * `<eyesfree-calibrator>` — the three-step perceptual calibration wizard:
- * 1. smallest comfortable text size → `fontScale`
- * 2. blur size slider + sharpness level → `blurRadius`, `sharpness`
- * 3. least-doubled letters + spacing → `ghostAxis`, `crowding`
+ * `<eyesfree-calibrator>` — the perceptual calibration wizard:
+ * 1. move back until text is sharp → `viewingDistance` (+ suggested `fontScale`)
+ * 2. smallest comfortable size from there → `fontScale`
+ * 3. (optional) blur size + sharpening → `blurRadius`, `sharpness`
+ * 4. (optional) least-doubled letters + spacing → `ghostAxis`, `crowding`
+ *
+ * From step 2 on, the wizard magnifies itself so it can be read from the chosen distance.
  *
  * Attributes: `locale`, `sample-letters`, `sample-text`, `nonce`, `hide-cancel`.
  * Properties: `engine`, `autoApply`, `suspendEngine`, `messages`, `profile`, `step`.
  * Events: `eyesfree-change`, `eyesfree-step`, `eyesfree-complete`, `eyesfree-cancel`.
- *
- * Works in plain HTML, React, Vue, Angular, Svelte, Lit, Solid, Ionic, Capacitor, etc.
  */
 export class EyesFreeCalibratorElement extends BaseElement {
   static get observedAttributes(): string[] {
@@ -112,6 +147,14 @@ export class EyesFreeCalibratorElement extends BaseElement {
     this.goTo(value);
   }
 
+  /**
+   * Magnification of the wizard's own UI: 1 in step 1 (read up close, with glasses), then
+   * the size suggested by the chosen distance, so the instructions stay readable.
+   */
+  get uiScale(): number {
+    return this._step === 1 ? 1 : suggestFontScale(this.profile.viewingDistance);
+  }
+
   /** Restarts the wizard at step 1 from `profile`, or from the engine's current profile / defaults. */
   start(profile?: Partial<VisionProfile>): void {
     this._draft = profile ? normalizeProfile({ ...profile, enabled: true }) : this.initialDraft();
@@ -122,7 +165,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
 
   /** Navigates to a step. */
   goTo(step: CalibratorStep): void {
-    this._step = step === 3 ? 3 : step === 2 ? 2 : 1;
+    this._step = Math.min(CALIBRATOR_STEPS, Math.max(1, Math.round(step))) as CalibratorStep;
     this.renderIfConnected(true);
     this.fire<{ step: CalibratorStep }>(CALIBRATOR_EVENTS.step, { step: this._step });
   }
@@ -172,9 +215,12 @@ export class EyesFreeCalibratorElement extends BaseElement {
     this.releaseEngine = null;
   }
 
+  private get locale(): string {
+    return this.getAttribute('locale') ?? this.ownerDocument?.documentElement?.lang ?? 'en';
+  }
+
   private get msgs(): CalibratorMessages {
-    const locale = this.getAttribute('locale') ?? this.ownerDocument?.documentElement?.lang ?? 'en';
-    return mergeMessages(resolveLocale(locale), this._messages);
+    return mergeMessages(resolveLocale(this.locale), this._messages);
   }
 
   private initialDraft(): VisionProfile {
@@ -199,7 +245,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
       <button type="button" class="efc-card" part="card" role="radio" aria-checked="${checked}"
         tabindex="${checked ? 0 : -1}" ${attrs}>
         ${head}
-        <span class="efc-clip"><span class="efc-sample ${sampleClass}" ${previewAttr} aria-hidden="true">${sample}</span></span>
+        ${sample ? `<span class="efc-clip"><span class="efc-sample ${sampleClass}" ${previewAttr} aria-hidden="true">${sample}</span></span>` : ''}
       </button>`;
   }
 
@@ -209,8 +255,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
     const letters = esc(this.getAttribute('sample-letters') ?? m.sampleLetters);
     const sentence = esc(this.getAttribute('sample-text') ?? m.sampleText);
     const hideCancel = this.hasAttribute('hide-cancel');
-    const instruction =
-      this._step === 1 ? m.sizeInstruction : this._step === 2 ? m.sharpnessInstruction : m.ghostInstruction;
+    const instruction = [m.distanceInstruction, m.sizeInstruction, m.sharpnessInstruction, m.ghostInstruction][this._step - 1]!;
 
     const head = `
       <div class="efc-panel" part="panel">
@@ -221,28 +266,48 @@ export class EyesFreeCalibratorElement extends BaseElement {
         <p class="efc-instruction" tabindex="-1">${esc(instruction)}</p>
       </div>`;
 
-    const back = `<button type="button" class="efc-btn efc-btn-secondary" data-action="back">← ${esc(m.back)}</button>`;
-    const cancel = hideCancel ? '' : `<button type="button" class="efc-btn efc-btn-secondary" data-action="cancel">${esc(m.cancel)}</button>`;
-    const next = `<button type="button" class="efc-btn efc-btn-primary" data-action="next">${esc(m.next)} →</button>`;
-    const apply = `<button type="button" class="efc-btn efc-btn-confirm" data-action="apply">${esc(m.apply)} ✓</button>`;
+    const btn = (action: string, cls: string, label: string) =>
+      `<button type="button" class="efc-btn ${cls}" data-action="${action}">${label}</button>`;
+    const back = btn('back', 'efc-btn-secondary', `← ${esc(m.back)}`);
+    const cancel = hideCancel ? '' : btn('cancel', 'efc-btn-secondary', esc(m.cancel));
+    const next = btn('next', 'efc-btn-primary', `${esc(m.next)} →`);
+    const more = btn('next', 'efc-btn-secondary', `${esc(m.moreAdjustments)} →`);
+    const apply = btn('apply', 'efc-btn-confirm', `${esc(m.apply)} ✓`);
 
     let body: string;
     if (this._step === 1) {
       body = `
+      <div class="efc-distance-sample" aria-hidden="true">
+        <span class="efc-distance-letters">${letters}</span>
+        <span class="efc-distance-text">${esc(m.distanceSampleText)}</span>
+      </div>
+      <div class="efc-list efc-list-compact" role="radiogroup" aria-label="${esc(m.distanceGroupLabel)}" data-group="distance">
+        ${DISTANCE_CHOICES.map((cm) => {
+          const label =
+            cm === REFERENCE_READING_DISTANCE_CM
+              ? `${m.distanceNormal} (${formatDistance(cm, this.locale)})`
+              : m.distanceOption.replace('{distance}', formatDistance(cm, this.locale));
+          const checked = (p.viewingDistance || REFERENCE_READING_DISTANCE_CM) === cm;
+          return this.card(`data-distance="${cm}"`, checked, `<span class="efc-card-label efc-card-label-lg">${esc(label)}</span>`, '', '', '');
+        }).join('')}
+      </div>
+      <div class="efc-actions">${cancel}${next}</div>`;
+    } else if (this._step === 2) {
+      body = `
       <div class="efc-list" role="radiogroup" aria-label="${esc(m.sizeGroupLabel)}" data-group="size">
-        ${SIZE_OPTIONS.map((scale) =>
+        ${sizeOptionsAround(suggestFontScale(p.viewingDistance)).map((scale) =>
           this.card(
             `data-size="${scale}"`,
             p.fontScale === scale,
             `<span class="efc-card-label">${esc(m.sizeOption.replace('{percent}', String(Math.round(scale * 100))))}</span>`,
             `data-preview-size="${scale}"`,
-            sentence,
+            esc(m.sizeSample),
             'efc-sample-text',
           ),
         ).join('')}
       </div>
-      <div class="efc-actions">${cancel}${next}</div>`;
-    } else if (this._step === 2) {
+      <div class="efc-actions">${back}${more}${apply}</div>`;
+    } else if (this._step === 3) {
       const ri = radiusIndex(p.blurRadius);
       body = `
       <label class="efc-slider">
@@ -257,10 +322,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
           return this.card(
             `data-sharpness="${level}"`,
             p.sharpness === level,
-            `<span class="efc-card-row">
-               <span class="efc-card-label">${esc(info.label)}</span>
-               ${level === 'medium' ? `<span class="efc-badge">${esc(m.mostChosen)}</span>` : ''}
-             </span>
+            `<span class="efc-card-row"><span class="efc-card-label">${esc(info.label)}</span></span>
              <span class="efc-hint">${esc(info.hint)}</span>`,
             `data-preview-sharpness="${level}"`,
             sentence,
@@ -268,7 +330,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
           );
         }).join('')}
       </div>
-      <div class="efc-actions">${back}${next}</div>`;
+      <div class="efc-actions">${back}${next}${apply}</div>`;
     } else {
       body = `
       <div class="efc-grid" role="radiogroup" aria-label="${esc(m.ghostGroupLabel)}" data-group="ghost">
@@ -291,38 +353,44 @@ export class EyesFreeCalibratorElement extends BaseElement {
       <div class="efc-actions">${back}${apply}</div>`;
     }
 
-    this.innerHTML = `<div class="efc" part="container">${head}${body}</div>`;
+    const ui = this.uiScale;
+    this.innerHTML = `<div class="efc" part="container"${ui !== 1 ? ` style="zoom:${ui}"` : ''}>${head}${body}</div>`;
     this.updatePreviews();
   }
 
-  /** Re-applies the inline optical previews for the current step. */
+  /** Re-applies the inline previews for the current step (at their true on-screen size). */
   private updatePreviews(): void {
     const p = this.profile;
+    const ui = this.uiScale;
+    // Inside the zoomed wizard, `rem` values are multiplied by `ui`: divide to get true sizes.
+    const trueSize = (scale: number) => `calc(1rem * ${Math.round((scale / ui) * 1000) / 1000})`;
     const base: Partial<VisionProfile> = {
       surfaceCompensation: p.surfaceCompensation,
       intensity: p.intensity,
       enabled: true,
       blurRadius: p.blurRadius,
     };
-    if (this._step === 1) {
-      for (const scale of SIZE_OPTIONS) {
-        const el = this.querySelector<HTMLElement>(`[data-preview-size="${scale}"]`);
-        if (el) el.style.fontSize = `calc(1.15rem * ${scale})`;
-      }
-    } else if (this._step === 2) {
+    if (this._step === 2) {
+      this.querySelectorAll<HTMLElement>('[data-preview-size]').forEach((el) => {
+        el.style.fontSize = trueSize(Number(el.dataset.previewSize));
+      });
+    } else if (this._step === 3) {
       for (const level of SHARPNESS_OPTIONS) {
         const plan = this.previewPlan({ ...base, ghostAxis: 'none', sharpness: level, crowding: p.crowding });
         const el = this.querySelector<HTMLElement>(`[data-preview-sharpness="${level}"]`);
         if (el) {
-          el.style.fontSize = `calc(1.15rem * ${p.fontScale})`;
+          el.style.fontSize = trueSize(p.fontScale);
           this.preview(el, plan, `sharp-${level}`);
         }
       }
-    } else {
+    } else if (this._step === 4) {
       for (const axis of GHOST_OPTIONS) {
         const plan = this.previewPlan({ ...base, ghostAxis: axis, sharpness: p.sharpness, crowding: p.crowding });
         const el = this.querySelector<HTMLElement>(`[data-preview-ghost="${axis}"]`);
-        if (el) this.preview(el, plan, `ghost-${axis}`);
+        if (el) {
+          el.style.fontSize = trueSize(p.fontScale);
+          this.preview(el, plan, `ghost-${axis}`);
+        }
       }
     }
   }
@@ -357,7 +425,8 @@ export class EyesFreeCalibratorElement extends BaseElement {
       const checked =
         (el.dataset.ghost !== undefined && el.dataset.ghost === d.ghostAxis) ||
         (el.dataset.sharpness !== undefined && el.dataset.sharpness === d.sharpness) ||
-        (el.dataset.size !== undefined && Number(el.dataset.size) === d.fontScale);
+        (el.dataset.size !== undefined && Number(el.dataset.size) === d.fontScale) ||
+        (el.dataset.distance !== undefined && Number(el.dataset.distance) === (d.viewingDistance || REFERENCE_READING_DISTANCE_CM));
       el.setAttribute('aria-checked', String(checked));
       el.tabIndex = checked ? 0 : -1;
     });
@@ -365,12 +434,26 @@ export class EyesFreeCalibratorElement extends BaseElement {
     this.fire<CalibratorChangeDetail>(CALIBRATOR_EVENTS.change, { profile: d, step: this._step });
   }
 
+  /** Choosing a distance also suggests the matching magnification. */
+  private selectDistance(cm: number): void {
+    const patch: Partial<VisionProfile> = {
+      viewingDistance: cm === REFERENCE_READING_DISTANCE_CM ? 0 : cm,
+      fontScale: suggestFontScale(cm),
+    };
+    // At a distance where the eye focuses, sharpening filters are unnecessary.
+    if (cm > REFERENCE_READING_DISTANCE_CM) Object.assign(patch, { sharpness: 'none', ghostAxis: 'none' });
+    this.select(patch);
+  }
+
   private onClick = (ev: Event): void => {
-    const target = (ev.target as Element | null)?.closest<HTMLElement>('[data-ghost],[data-sharpness],[data-size],[data-action]');
+    const target = (ev.target as Element | null)?.closest<HTMLElement>(
+      '[data-ghost],[data-sharpness],[data-size],[data-distance],[data-action]',
+    );
     if (!target || !this.contains(target)) return;
     if (target.dataset.ghost) this.select({ ghostAxis: target.dataset.ghost as GhostAxis });
     else if (target.dataset.sharpness) this.select({ sharpness: target.dataset.sharpness as SharpnessLevel });
     else if (target.dataset.size) this.select({ fontScale: Number(target.dataset.size) });
+    else if (target.dataset.distance) this.selectDistance(Number(target.dataset.distance));
     else {
       switch (target.dataset.action) {
         case 'next':

@@ -28,7 +28,25 @@ A Gaussian with σ ≈ diameter / 4 is a reasonable stand-in, so σ ≈ 1–6 CS
 >
 > ![Simulated +2.00 D eye: no compensation, v0.1, v0.2](assets/simulated-comparison.png)
 
-## 2. Technique 0: magnification (step 1)
+## 2. The approach that gives truly sharp text: distance + magnification
+
+Presbyopia reduces how much the eye can *add* focusing power for near objects. A reader who needs **+2.50** reading glasses (prescribed for ≈ 40 cm, i.e. 2.5 D of demand) has little accommodation left, so without glasses their eye focuses sharply only from roughly **1 m** onwards (if their distance vision is good). At that distance the image on the retina is genuinely sharp. It is only small.
+
+Magnifying by `distance / 40 cm` restores the normal angular size of the text:
+
+| Sharp from | Suggested magnification |
+|---|---|
+| 50 cm | 125 % |
+| 70 cm | 175 % |
+| 1 m | **250 %** |
+| 1.3 m | 325 % |
+| ≥ 1.6 m | 400 % (maximum) |
+
+This was confirmed by a +2.50 user, who read sharply at 1 m with 250 %. The calibrator's first two steps implement exactly this (`viewingDistance`, `fontScale`, `suggestFontScale()`). The sharpening techniques below are for people who must stay close to the screen. They improve legibility but cannot make the text sharp.
+
+For **myopia** the situation is reversed: myopes usually see well up close without glasses, so bringing the screen nearer helps. Nothing on this page helps when the eye cannot focus at any practical distance; only lenses do.
+
+## 2a. Technique 0: magnification
 
 Enlarging text is by far the most effective screen-side aid. A blur of fixed size hurts small glyphs much more than large ones, because the stroke width and the gaps between letters grow while the blur stays the same. Step 1 asks for the *smallest comfortable* size (100–200 %). On the web it is applied with CSS `zoom` on the root's children, so the layout reflows like browser zoom while the sharpening filter on the root keeps operating in true screen pixels.
 

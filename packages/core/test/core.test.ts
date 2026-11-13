@@ -20,6 +20,7 @@ import {
   serializeProfile,
   SHARPNESS_PRESETS,
   shadowsToCss,
+  suggestFontScale,
   unsharpRGBA,
   validateProfile,
 } from '@eyesfree/core';
@@ -120,16 +121,20 @@ describe('codec', () => {
     intensity: 1.25,
     surfaceCompensation: false,
     fontScale: 1.4,
+    viewingDistance: 100,
   };
 
   it('round-trips every field', () => {
     const code = encodeProfile(sample);
-    expect(code).toBe('EF1.as301.125.140.250');
+    expect(code).toBe('EF1.as301.125.140.250.100');
     expect(decodeProfile(code)).toEqual(sample);
   });
 
   it('still decodes 0.1 codes (no blur-radius segment) with the default radius', () => {
-    expect(decodeProfile('EF1.as301.125.140')).toEqual({ ...sample, blurRadius: DEFAULT_PROFILE.blurRadius });
+    expect(decodeProfile('EF1.as301.125.140')).toEqual({ ...sample, blurRadius: DEFAULT_PROFILE.blurRadius, viewingDistance: 0 });
+    expect(decodeProfile('EF1.as301.125.140.250')).toEqual({ ...sample, viewingDistance: 0 });
+    expect(decodeProfile('EF1.as301.125.400.250.100')?.fontScale).toBe(4);
+    expect(decodeProfile('EF1.as301.125.140.250.999')).toBeNull(); // distance > 300 cm
     expect(decodeProfile('EF1.nm211.100.100.1300')).toBeNull(); // radius 13 > 12
   });
 
@@ -146,6 +151,20 @@ describe('codec', () => {
     expect(parseProfile('')).toBeNull();
     expect(parseProfile('{broken')).toBeNull();
     expect(parseProfile(null)).toBeNull();
+  });
+});
+
+describe('distance mode', () => {
+  it('suggests the magnification that keeps the normal angular size', () => {
+    expect(suggestFontScale(100)).toBe(2.5); // validated by a +2.50 reader: sharp at 1 m with 250 %
+    expect(suggestFontScale(70)).toBe(1.75);
+    expect(suggestFontScale(200)).toBe(4); // clamped
+    expect(suggestFontScale(0)).toBe(1);
+  });
+
+  it('carries the viewing distance into the plan', () => {
+    expect(createRenderPlan({ viewingDistance: 130, fontScale: 3.25 })).toMatchObject({ viewingDistanceCm: 130, fontScale: 3.25 });
+    expect(normalizeProfile({ fontScale: 9, viewingDistance: 999 })).toMatchObject({ fontScale: 4, viewingDistance: 300 });
   });
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "@eyesfree/react-native",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "EyesFree for React Native / Expo: provider, hooks, <EyesFreeText>, <EyesFreeSurface> and a native calibration wizard.",
   "license": "Apache-2.0",
   "type": "module",
@@ -20,7 +20,7 @@
   "files": ["dist", "src", "README.md", "LICENSE", "NOTICE"],
   "sideEffects": false,
   "dependencies": {
-    "@eyesfree/core": "0.2.0"
+    "@eyesfree/core": "0.3.0"
   },
   "peerDependencies": {
     "react": ">=18",

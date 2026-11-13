@@ -18,7 +18,8 @@ JSON Schema: [`spec/vision-profile.schema.json`](../spec/vision-profile.schema.j
 | `crowding` | integer | `0`–`3` | `2` | Spacing level |
 | `intensity` | number | `0.25`–`2` | `1` | Global strength multiplier |
 | `surfaceCompensation` | boolean | | `true` | Luminance headroom |
-| `fontScale` | number | `1`–`2` | `1` | Step-1 choice: text magnification |
+| `fontScale` | number | `1`–`4` | `1` | Step-2 choice: text magnification |
+| `viewingDistance` | number | `0`–`300` | `0` | Step-1 choice: distance (cm) where the user sees sharply without glasses. `0` = unknown / normal |
 | `updatedAt` | string | ISO-8601 | | Informational |
 
 **Normalisation.** Readers SHOULD accept partial or slightly invalid input by replacing invalid fields with the defaults and clamping numbers into range (`normalizeProfile`). Writers MUST emit valid profiles.
@@ -31,7 +32,7 @@ JSON Schema: [`spec/vision-profile.schema.json`](../spec/vision-profile.schema.j
 A compact, URL-safe text form for deep links, QR codes, push payloads and native↔WebView hand-off.
 
 ```
-EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>[.<blurRadius×100>]
+EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>[.<blurRadius×100>[.<viewingDistance>]]
 ```
 
 | Position | Values |
@@ -42,10 +43,11 @@ EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×1
 | surface | `1` on · `0` off |
 | enabled | `1` on · `0` off |
 | intensity | integer, `25`–`200` |
-| fontScale | integer, `100`–`200` |
+| fontScale | integer, `100`–`400` |
 | blurRadius | integer, `0`–`1200`. **Optional** when decoding (added in 0.2; absent ⇒ default 3 px). Encoders MUST emit it. |
+| viewingDistance | integer cm, `0`–`300`. **Optional** (added in 0.3; absent ⇒ 0). Encoders MUST emit it. |
 
-Regular expression: `^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})(?:\.(\d{1,4}))?$`
+Regular expression: `^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})(?:\.(\d{1,4})(?:\.(\d{1,3}))?)?$`
 
 Examples:
 

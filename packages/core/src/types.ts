@@ -51,8 +51,14 @@ export interface VisionProfile {
    * real luminous headroom on the display. Strongly recommended. Default true.
    */
   surfaceCompensation: boolean;
-  /** Step 1 result — text magnification. Range 1–2. Default 1. */
+  /** Text magnification. Range 1–4. Default 1. */
   fontScale: number;
+  /**
+   * Distance (cm) at which the user sees the screen sharply without glasses — the
+   * calibrator's distance step. 0 = unknown / normal reading distance. Range 0–300.
+   * Informational: apps can remind the user where to sit ("about 1 m from the screen").
+   */
+  viewingDistance: number;
   /** ISO-8601 timestamp of the last change (informational). */
   updatedAt?: string;
 }
@@ -117,6 +123,8 @@ export interface RenderPlan {
   fontWeightDelta: number;
   /** Text magnification to apply. */
   fontScale: number;
+  /** Recommended viewing distance in cm (0 = unknown / normal). */
+  viewingDistanceCm: number;
   /** Suggested palette when surface compensation is on (null otherwise). */
   surface: SurfacePalette | null;
 }

@@ -28,6 +28,7 @@ export const INACTIVE_PLAN: Readonly<RenderPlan> = Object.freeze({
   wordSpacingEm: 0,
   fontWeightDelta: 0,
   fontScale: 1,
+  viewingDistanceCm: 0,
   surface: null,
 });
 
@@ -83,6 +84,7 @@ export function createRenderPlan(input: Partial<VisionProfile> | VisionProfile |
     wordSpacingEm: spacing.word,
     fontWeightDelta: SHARPNESS_WEIGHT_DELTA[p.sharpness],
     fontScale: p.fontScale,
+    viewingDistanceCm: p.viewingDistance,
     surface: p.surfaceCompensation ? { ...SURFACE_PALETTE } : null,
   };
 }

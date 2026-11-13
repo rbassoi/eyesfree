@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-13
+
+A +2.50 reading-glasses user still could not see anything sharp at 30 cm with 0.2. Screen
+filters cannot undo blur that happens inside the eye. They did, however, read sharply **at 1 m
+with 250 % zoom**, so this release makes that the main path.
+
+### Added
+- **Distance mode.** The calibrator now starts with "move back until these letters are sharp:
+  how far are you?" (40 cm–2 m) and suggests the matching magnification
+  (`suggestFontScale(cm)` = distance ÷ 40 cm, so 1 m → 250 %).
+- From step 2 the wizard **magnifies itself** (CSS `zoom`) so it stays readable from the chair,
+  while previews are still rendered at their true on-screen size.
+- New profile field `viewingDistance` (cm, 0–300) and `RenderPlan.viewingDistanceCm`, so apps
+  can remind users where to sit. EF1 codes gain an optional 5th segment.
+- "Apply" is available right after the size step; sharpening and doubled-letter steps are now
+  optional ("More adjustments").
+- `DISTANCE_OPTIONS_CM`, `REFERENCE_READING_DISTANCE_CM`, `VIEWING_DISTANCE_RANGE`,
+  `DISTANCE_CHOICES` and `sizeOptionsAround()`.
+
+### Changed
+- `fontScale` range widened from 1–2 to **1–4**.
+- The calibrator has 4 steps (distance, size, sharpness, doubled letters) and the dialog is
+  wider (up to 1100 px). New message keys: `distanceInstruction`, `distanceGroupLabel`,
+  `distanceOption`, `distanceNormal`, `distanceSampleText`, `sizeSample` and `moreAdjustments`.
+- Choosing a distance beyond 40 cm sets `sharpness: 'none'`, because at a focused distance
+  sharpening is unnecessary.
+
 ## [0.2.0] - 2026-11-13
 
 Field testing showed that 0.1 produced no perceptible benefit: its 3×3 kernels act on a ~1 px

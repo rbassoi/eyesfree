@@ -1,4 +1,4 @@
-import { BLUR_RADIUS_RANGE, DEFAULT_PROFILE, FONT_SCALE_RANGE, INTENSITY_RANGE, PROFILE_VERSION } from './constants.js';
+import { BLUR_RADIUS_RANGE, DEFAULT_PROFILE, FONT_SCALE_RANGE, INTENSITY_RANGE, PROFILE_VERSION, VIEWING_DISTANCE_RANGE } from './constants.js';
 import { normalizeProfile } from './profile.js';
 import type { CrowdingLevel, GhostAxis, SharpnessLevel, VisionProfile } from './types.js';
 
@@ -6,8 +6,9 @@ import type { CrowdingLevel, GhostAxis, SharpnessLevel, VisionProfile } from './
  * Compact, URL-safe, human-copyable profile code — ideal for deep links, QR codes, push
  * payloads, or handing a profile from a native shell to a WebView.
  *
- * Format: `EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>.<blurRadius×100>`
- * (the last segment is optional when decoding; it defaults to 3 px)
+ * Format: `EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>.<blurRadius×100>.<viewingDistance cm>`
+ * (the last two segments are optional when decoding: blur radius defaults to 3 px and
+ * viewing distance to 0)
  *
  * Example: `EF1.nm211.100.100.300` → no ghosting, medium sharpness, crowding 2, surface
  * compensation on, enabled, intensity 1.00, font scale 1.00, blur radius 3 px.
@@ -29,8 +30,8 @@ const invert = <K extends string>(m: Readonly<Record<K, string>>) =>
 const CODE_TO_AXIS = invert(AXIS_TO_CODE);
 const CODE_TO_SHARP = invert(SHARP_TO_CODE);
 
-/** The 4th segment (blur radius × 100) was added in 0.2 and is optional when decoding. */
-const CODE_RE = /^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})(?:\.(\d{1,4}))?$/;
+/** Segments 4 (blur radius × 100, since 0.2) and 5 (viewing distance cm, since 0.3) are optional. */
+const CODE_RE = /^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})(?:\.(\d{1,4})(?:\.(\d{1,3}))?)?$/;
 
 /** Encodes a profile as a compact code (see {@link PROFILE_CODE_PREFIX}). */
 export function encodeProfile(input: VisionProfile): string {
@@ -45,6 +46,7 @@ export function encodeProfile(input: VisionProfile): string {
     String(Math.round(p.intensity * 100)),
     String(Math.round(p.fontScale * 100)),
     String(Math.round(p.blurRadius * 100)),
+    String(Math.round(p.viewingDistance)),
   ].join('.');
 }
 
@@ -53,13 +55,15 @@ export function decodeProfile(code: string): VisionProfile | null {
   if (typeof code !== 'string') return null;
   const m = CODE_RE.exec(code.trim());
   if (!m) return null;
-  const [, axis, sharp, crowding, surface, enabled, intensity, fontScale, radius] = m;
+  const [, axis, sharp, crowding, surface, enabled, intensity, fontScale, radius, distance] = m;
   const i = Number(intensity) / 100;
   const f = Number(fontScale) / 100;
   const r = radius === undefined ? DEFAULT_PROFILE.blurRadius : Number(radius) / 100;
   if (i < INTENSITY_RANGE.min || i > INTENSITY_RANGE.max) return null;
   if (f < FONT_SCALE_RANGE.min || f > FONT_SCALE_RANGE.max) return null;
   if (r < BLUR_RADIUS_RANGE.min || r > BLUR_RADIUS_RANGE.max) return null;
+  const dist = distance === undefined ? DEFAULT_PROFILE.viewingDistance : Number(distance);
+  if (dist < VIEWING_DISTANCE_RANGE.min || dist > VIEWING_DISTANCE_RANGE.max) return null;
   return {
     version: PROFILE_VERSION,
     ghostAxis: CODE_TO_AXIS[axis!]!,
@@ -70,6 +74,7 @@ export function decodeProfile(code: string): VisionProfile | null {
     enabled: enabled === '1',
     intensity: i,
     fontScale: f,
+    viewingDistance: dist,
   };
 }
 

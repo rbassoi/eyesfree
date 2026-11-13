@@ -10,7 +10,7 @@ const dist = resolve(here, 'dist');
 await mkdir(dist, { recursive: true });
 
 const banner = {
-  js: '/*! EyesFree v0.2.0 | Apache-2.0 | Original project: https://github.com/rbassoi/eyesfree */',
+  js: '/*! EyesFree v0.3.0 | Apache-2.0 | Original project: https://github.com/rbassoi/eyesfree */',
 };
 const common = {
   entryPoints: [resolve(here, 'src/index.ts')],
@@ -31,7 +31,7 @@ await Promise.all([
 // that forbid inline <style>). Generated from the same source of truth as the runtime.
 const web = await import('@eyesfree/web');
 await writeFile(resolve(dist, 'eyesfree.worker.js'), `${banner.js}\n${web.createWorkerSource()}\n`);
-const css = `/*! EyesFree v0.2.0 | Apache-2.0 */\n${web.EYESFREE_CSS}\n`;
+const css = `/*! EyesFree v0.3.0 | Apache-2.0 */\n${web.EYESFREE_CSS}\n`;
 await writeFile(resolve(dist, 'eyesfree.css'), css);
 await writeFile(resolve(here, '../web/eyesfree.css'), css);
 

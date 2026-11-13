@@ -39,6 +39,10 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 .stage { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 28px; align-items: start; }
 @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+/* Distance mode: magnified text needs the full width (like browser zoom on a desktop). */
+.stage:has(.eyesfree-zoom) { grid-template-columns: minmax(0, 1fr); }
+.phone:has(.eyesfree-zoom) { border-radius: 20px; }
+#distance-tip { font-weight: 700; color: #065f46; }
 
 /* Phone */
 .phone { border: 8px solid #334155; border-radius: 36px; overflow: hidden; background: #fff; box-shadow: 0 30px 60px rgba(0,0,0,0.45); transition: filter 200ms; }

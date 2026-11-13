@@ -5,8 +5,20 @@ export interface CalibratorMessages {
   title: string;
   /** Template with `{current}` and `{total}`. */
   stepIndicator: string;
-  /** Step 1 — text size. */
+  /** Step 1 — viewing distance. */
+  distanceInstruction: string;
+  distanceGroupLabel: string;
+  /** Template with `{distance}` (formatted, e.g. "1 m"). */
+  distanceOption: string;
+  /** Label for the 40 cm option (normal reading distance). */
+  distanceNormal: string;
+  distanceSampleText: string;
+  /** Step 2 — text size. */
   sizeInstruction: string;
+  /** Short sample shown at each candidate size. */
+  sizeSample: string;
+  /** Button that opens the optional fine-tuning steps. */
+  moreAdjustments: string;
   sizeGroupLabel: string;
   /** Template with `{percent}`. */
   sizeOption: string;
@@ -35,7 +47,15 @@ export interface CalibratorMessages {
 export const en: CalibratorMessages = {
   title: 'Reading without glasses',
   stepIndicator: 'Step {current} of {total}',
-  sizeInstruction: 'Take off your glasses and sit at your usual distance. Tap the SMALLEST text you can read without effort.',
+  distanceInstruction:
+    'Read this with your glasses on. Then take them off and move back from the screen until the big letters below look SHARP. About how far are you?',
+  distanceGroupLabel: 'How far from the screen are you?',
+  distanceOption: 'About {distance}',
+  distanceNormal: 'Normal reading distance',
+  distanceSampleText: 'Payment of $158.90',
+  sizeInstruction: 'From where you are now, tap the SMALLEST text you can read comfortably.',
+  sizeSample: '$84.50 · 2 PM',
+  moreAdjustments: 'More adjustments',
   sizeGroupLabel: 'Which is the smallest comfortable size?',
   sizeOption: 'Size {percent}%',
   sharpnessInstruction:
@@ -74,7 +94,15 @@ export const en: CalibratorMessages = {
 export const ptBR: CalibratorMessages = {
   title: 'Leitura sem óculos',
   stepIndicator: 'Passo {current} de {total}',
-  sizeInstruction: 'Tire os óculos e fique na distância de costume. Toque no MENOR texto que você consegue ler sem esforço.',
+  distanceInstruction:
+    'Leia isto de óculos. Depois tire os óculos e afaste-se da tela até as letras grandes abaixo ficarem NÍTIDAS. A que distância você está?',
+  distanceGroupLabel: 'A que distância da tela você está?',
+  distanceOption: 'Cerca de {distance}',
+  distanceNormal: 'Distância normal de leitura',
+  distanceSampleText: 'Pagamento de R$ 158,90',
+  sizeInstruction: 'De onde você está agora, toque no MENOR texto que consegue ler com conforto.',
+  sizeSample: 'R$ 84,50 · 14h',
+  moreAdjustments: 'Mais ajustes',
   sizeGroupLabel: 'Qual o menor tamanho confortável?',
   sizeOption: 'Tamanho {percent}%',
   sharpnessInstruction: 'Mova a régua até as frases ficarem mais nítidas e toque na que estiver mais fácil de ler.',
@@ -112,7 +140,15 @@ export const ptBR: CalibratorMessages = {
 export const es: CalibratorMessages = {
   title: 'Leer sin gafas',
   stepIndicator: 'Paso {current} de {total}',
-  sizeInstruction: 'Quítese las gafas y colóquese a la distancia habitual. Toque el texto MÁS PEQUEÑO que puede leer sin esfuerzo.',
+  distanceInstruction:
+    'Lea esto con sus gafas puestas. Luego quíteselas y aléjese de la pantalla hasta que las letras grandes de abajo se vean NÍTIDAS. ¿A qué distancia está?',
+  distanceGroupLabel: '¿A qué distancia de la pantalla está?',
+  distanceOption: 'Unos {distance}',
+  distanceNormal: 'Distancia normal de lectura',
+  distanceSampleText: 'Pago de $158,90',
+  sizeInstruction: 'Desde donde está ahora, toque el texto MÁS PEQUEÑO que puede leer con comodidad.',
+  sizeSample: '$84,50 · 14 h',
+  moreAdjustments: 'Más ajustes',
   sizeGroupLabel: '¿Cuál es el tamaño más pequeño cómodo?',
   sizeOption: 'Tamaño {percent}%',
   sharpnessInstruction: 'Mueva la barra hasta que las frases se vean más nítidas y toque la más fácil de leer.',

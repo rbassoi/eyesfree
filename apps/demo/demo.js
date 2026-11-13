@@ -11,26 +11,14 @@ import {
 const { engine } = mount({ root: '#app-root', openSelector: false });
 
 const $ = (sel) => document.querySelector(sel);
-const calibrator = $('#calibrator');
-calibrator.engine = engine; // "Apply" will call engine.apply(profile)
 
-// 2. Simple screen router for the fake app.
-function show(screen) {
-  $('#screen-calibration').hidden = screen !== 'calibration';
-  $('#screen-home').hidden = screen !== 'home';
-  if (screen === 'calibration') calibrator.start();
-}
+// 2. The calibrator opens as a wide modal dialog: from step 2 it magnifies itself so it
+//    stays readable from the distance the user moved back to.
 document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-screen]');
-  if (!btn) return;
-  const calibrating = !$('#screen-calibration').hidden;
-  if (calibrating && btn.dataset.screen === 'calibration') return;
-  // Leaving the wizard: cancel() resumes the suspended engine and emits eyesfree-cancel.
-  if (calibrating) calibrator.cancel();
-  else show(btn.dataset.screen);
+  if (!e.target.closest('[data-open-calibrator]')) return;
+  const handle = openCalibratorDialog({ engine, locale: $('#locale').value });
+  handle.element.start();
 });
-calibrator.addEventListener('eyesfree-complete', () => show('home'));
-calibrator.addEventListener('eyesfree-cancel', () => show('home'));
 
 // 3. React to state changes (framework-free DOM event).
 const AXIS = { none: 'None', horizontal: 'Sideways', vertical: 'Vertical', diagonal45: 'Diagonal B', diagonal135: 'Diagonal A', outline: 'Outline' };
@@ -39,6 +27,12 @@ function renderStatus() {
   const { profile, plan } = engine.getState();
   $('#status-badge').textContent = plan.active ? 'No-glasses mode: ON' : 'Standard view (with glasses)';
   $('#active-banner').hidden = !plan.active;
+  const tip = $('#distance-tip');
+  tip.hidden = !(plan.active && plan.viewingDistanceCm);
+  if (!tip.hidden) {
+    const d = plan.viewingDistanceCm;
+    tip.textContent = `Sit about ${d < 100 ? d + ' cm' : d / 100 + ' m'} from the screen, without glasses.`;
+  }
   if (profile) {
     $('#profile-desc').textContent =
       `Size ${Math.round(profile.fontScale * 100)}% · Sharpness: ${profile.sharpness} (blur ${profile.blurRadius}px) · ` +
@@ -71,8 +65,6 @@ $('#sim-strength').addEventListener('change', () => {
   undoSim();
   undoSim = simulateDefocus($('#phone'), { blurPx: Number($('#sim-strength').value) });
 });
-$('#locale').addEventListener('change', (e) => calibrator.setAttribute('locale', e.target.value));
-$('#btn-dialog').addEventListener('click', () => openCalibratorDialog({ engine, locale: $('#locale').value }));
 $('#btn-copy').addEventListener('click', async () => {
   const url = engine.getShareUrl();
   try {

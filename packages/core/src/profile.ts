@@ -1,5 +1,7 @@
 import {
   BLUR_RADIUS_RANGE,
+  REFERENCE_READING_DISTANCE_CM,
+  VIEWING_DISTANCE_RANGE,
   CROWDING_LEVELS,
   DEFAULT_PROFILE,
   FONT_SCALE_RANGE,
@@ -51,6 +53,9 @@ export function validateProfile(input: unknown): ValidationResult {
   if (typeof input.fontScale !== 'number' || !Number.isFinite(input.fontScale) || input.fontScale < FONT_SCALE_RANGE.min || input.fontScale > FONT_SCALE_RANGE.max) {
     errors.push(`fontScale must be a number between ${FONT_SCALE_RANGE.min} and ${FONT_SCALE_RANGE.max}`);
   }
+  if (typeof input.viewingDistance !== 'number' || !Number.isFinite(input.viewingDistance) || input.viewingDistance < VIEWING_DISTANCE_RANGE.min || input.viewingDistance > VIEWING_DISTANCE_RANGE.max) {
+    errors.push(`viewingDistance must be a number between ${VIEWING_DISTANCE_RANGE.min} and ${VIEWING_DISTANCE_RANGE.max}`);
+  }
   if (input.updatedAt !== undefined && typeof input.updatedAt !== 'string') errors.push('updatedAt must be an ISO-8601 string');
   return { valid: errors.length === 0, errors };
 }
@@ -92,6 +97,7 @@ export function normalizeProfile(input?: unknown): VisionProfile {
     surfaceCompensation:
       typeof src.surfaceCompensation === 'boolean' ? src.surfaceCompensation : DEFAULT_PROFILE.surfaceCompensation,
     fontScale: num(src.fontScale, DEFAULT_PROFILE.fontScale, FONT_SCALE_RANGE.min, FONT_SCALE_RANGE.max),
+    viewingDistance: num(src.viewingDistance, DEFAULT_PROFILE.viewingDistance, VIEWING_DISTANCE_RANGE.min, VIEWING_DISTANCE_RANGE.max),
   };
   if (typeof src.updatedAt === 'string') profile.updatedAt = src.updatedAt;
   return profile;
@@ -118,6 +124,19 @@ export function profilesEqual(a: VisionProfile | null | undefined, b: VisionProf
     a.crowding === b.crowding &&
     a.intensity === b.intensity &&
     a.surfaceCompensation === b.surfaceCompensation &&
-    a.fontScale === b.fontScale
+    a.fontScale === b.fontScale &&
+    a.viewingDistance === b.viewingDistance
   );
+}
+
+/**
+ * Magnification that keeps text at its normal angular size when read from `distanceCm`
+ * instead of the normal reading distance (40 cm), rounded to 0.25 and clamped to 1–4.
+ *
+ * Example: sitting 1 m away → 2.5 (250 %).
+ */
+export function suggestFontScale(distanceCm: number): number {
+  if (!(distanceCm > 0)) return 1;
+  const raw = distanceCm / REFERENCE_READING_DISTANCE_CM;
+  return clamp(Math.round(raw * 4) / 4, FONT_SCALE_RANGE.min, FONT_SCALE_RANGE.max);
 }

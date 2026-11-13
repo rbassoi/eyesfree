@@ -6,8 +6,10 @@ import type { CalibratorMessages } from './i18n.js';
 const DIALOG_STYLE_ID = 'eyesfree-dialog-styles';
 const DIALOG_CSS = `
 dialog.efc-dialog {
-  width: min(480px, calc(100vw - 24px));
+  /* Wide: from step 2 the wizard magnifies itself to be readable from a distance. */
+  width: min(1100px, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
+  overflow: auto;
   padding: 16px; border: 0; border-radius: 24px;
   background: #ffffff; color: #0f172a;
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.35);
