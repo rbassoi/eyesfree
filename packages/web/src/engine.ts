@@ -51,6 +51,12 @@ export interface EyesFreeOptions {
   scope?: FilterScope;
   /** Surface compensation strategy. Default `tone`. */
   surfaceMode?: SurfaceMode;
+  /**
+   * Apply the profile's `fontScale` by zooming the root's children (CSS `zoom`, which
+   * reflows layout like browser zoom). Set `false` if your app handles text size itself
+   * via the `--eyesfree-font-scale` variable. Default `true`.
+   */
+  magnify?: boolean;
   /** Synchronise profile changes across tabs with `BroadcastChannel`. Default `true`. */
   sync?: boolean;
   /** Inject the stylesheet automatically. Set `false` if you ship `eyesfree.css`. Default `true`. */
@@ -128,6 +134,7 @@ export class EyesFree {
       urlParam: options.urlParam ?? 'eyesfree',
       scope: options.scope ?? 'root',
       surfaceMode: options.surfaceMode ?? 'tone',
+      magnify: options.magnify ?? true,
       sync: options.sync ?? true,
       injectStyles: options.injectStyles ?? true,
       nonce: options.nonce,
@@ -462,6 +469,7 @@ export class EyesFree {
     root.classList.toggle(CLASSES.scopeRoot, scope === 'root');
     root.classList.toggle(CLASSES.scopeOptIn, scope === 'opt-in');
     root.classList.toggle(CLASSES.palette, surfaceMode !== 'tone' && plan.surface !== null);
+    root.classList.toggle(CLASSES.zoom, this.options.magnify && plan.fontScale !== 1);
     root.setAttribute('data-eyesfree', 'on');
     this.renderedRoot = root;
   }
@@ -469,7 +477,7 @@ export class EyesFree {
   private unrender(): void {
     const root = this.renderedRoot;
     if (root) {
-      root.classList.remove(CLASSES.active, CLASSES.scopeRoot, CLASSES.scopeOptIn, CLASSES.palette);
+      root.classList.remove(CLASSES.active, CLASSES.scopeRoot, CLASSES.scopeOptIn, CLASSES.palette, CLASSES.zoom);
       root.removeAttribute('data-eyesfree');
       clearVariables(root);
     }

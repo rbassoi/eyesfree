@@ -20,8 +20,15 @@
   <section class="toolbar" aria-label="Developer tools">
     <div class="tool">
       <span class="tool-label">Developer mode</span>
-      <p>Blur the phone to approximate an uncorrected eye, then calibrate and compare.</p>
-      <button id="btn-sim" class="tool-btn" aria-pressed="false">Simulate eye: OFF</button>
+      <p>Blur the phone to approximate an uncorrected eye at reading distance, then calibrate and compare.</p>
+      <div class="tool-row">
+        <select id="sim-strength" aria-label="Simulated eye">
+          <option value="1.2">≈ +1.00 (mild)</option>
+          <option value="2.5" selected>≈ +2.00 (moderate)</option>
+          <option value="3.5">≈ +3.00 (strong)</option>
+        </select>
+        <button id="btn-sim" class="tool-btn" aria-pressed="false">Simulate eye: OFF</button>
+      </div>
     </div>
     <div class="tool">
       <label class="tool-label" for="locale">Calibrator language</label>

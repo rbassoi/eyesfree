@@ -17,7 +17,7 @@ Pick your platform. Every guide ends with the same checklist, so the user experi
 ## UX checklist (all platforms)
 
 - [ ] Add an entry point that is easy to find without glasses: a large **"👓 No glasses?"** button in the header or the accessibility settings.
-- [ ] Use a step-2 sample sentence typical of your app: an amount, a date, a dosage.
+- [ ] Use a sample sentence (steps 1 and 2) typical of your app: an amount, a date, a dosage.
 - [ ] Show a clear **on/off** state and a one-tap way to turn compensation off.
 - [ ] Persist the profile, so users calibrate once per device.
 - [ ] Don't apply compensation to the calibration screen itself (the provided wizards handle this).

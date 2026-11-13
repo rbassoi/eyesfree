@@ -12,7 +12,35 @@ Without correction, an eye with refractive error projects every point of the scr
 
 The image on the retina is approximately `retina = screen ⊛ PSF`. EyesFree tries to display `screen' ≈ screen ⊛ PSF⁻¹`, so that `screen' ⊛ PSF` comes closer to the sharp original.
 
-## 2. Technique A: isotropic deconvolution (step 2)
+### How big is the blur?
+
+With defocus `D` (dioptres) and pupil diameter `p`, the blur disc subtends about `p × D` radians. At reading distance `d`, it covers `p × D × d` on the screen:
+
+| Situation | Blur disc on screen | In CSS px (≈ 0.26 mm desktop / 0.16 mm phone) |
+|---|---|---|
+| +1.00 D, 4 mm pupil, 30 cm | ≈ 1.2 mm | ≈ 5 px desktop · 8 px phone |
+| +2.00 D, 4 mm pupil, 30 cm | ≈ 2.4 mm | ≈ 9 px desktop · 15 px phone |
+| +3.00 D, 4 mm pupil, 35 cm | ≈ 4.2 mm | ≈ 16 px desktop · 26 px phone |
+
+A Gaussian with σ ≈ diameter / 4 is a reasonable stand-in, so σ ≈ 1–6 CSS px covers most readers. This is why the calibrator asks the user to *size* the blur with a slider.
+
+> **Lesson from 0.1.** The first release only used 3×3 kernels, which act on a ~1-pixel neighbourhood. That is an order of magnitude smaller than the blur above, and field testing confirmed it made no perceptible difference. Since 0.2, the pre-sharpening radius is matched to the user's blur, and magnification (the strongest lever) is applied for real.
+>
+> ![Simulated +2.00 D eye: no compensation, v0.1, v0.2](assets/simulated-comparison.png)
+
+## 2. Technique 0: magnification (step 1)
+
+Enlarging text is by far the most effective screen-side aid. A blur of fixed size hurts small glyphs much more than large ones, because the stroke width and the gaps between letters grow while the blur stays the same. Step 1 asks for the *smallest comfortable* size (100–200 %). On the web it is applied with CSS `zoom` on the root's children, so the layout reflows like browser zoom while the sharpening filter on the root keeps operating in true screen pixels.
+
+## 2b. Technique A1: large-radius pre-sharpening (step 2)
+
+```
+out = in + a × (in − G_σ ⊛ in)          (unsharp mask, σ = the user's blur size)
+```
+
+This is the first-order term of the inverse of a Gaussian blur. Each glyph gets a dark inner band and a bright outer band whose *width matches the user's blur*, so after the eye's blur the edge contrast is partially restored. `a` is 0.6 / 1.0 / 1.5 for mild / medium / strong, times `intensity`. On the web it is an `feGaussianBlur` + `feComposite arithmetic` pair, which is GPU-accelerated and expressed in CSS px, so it is independent of device pixel ratio. A light stroke thickening (0.15–0.45 px) helps thin strokes survive the blur.
+
+## 2c. Technique A2: legacy 3×3 deconvolution (`blurRadius: 0`)
 
 A full inverse of a Gaussian is unstable and needs a dynamic range the display does not have. EyesFree uses a regularised first-order approximation, a **modified Laplacian high-boost kernel**:
 
@@ -30,9 +58,9 @@ Each glyph gets a **hyper-dark inner edge** and a **hyper-bright outer edge**. A
 | `medium` | 0.95 | 0 | ~ +1.75 to +2.25 D |
 | `strong` | 1.15 | 0.25 | ≥ +2.50 D |
 
-The dioptre ranges are **indicative only**. They come from the original prototype's perceptual tuning at typical phone reading distance (30–40 cm). The user's choice in step 2 is what matters. `intensity` scales `k` and `d` linearly for fine-tuning.
+These ranges come from the original prototype and are **not supported by field testing**: a 3×3 kernel is far smaller than real defocus blur (see above). The legacy kernels remain available with `blurRadius: 0` for compatibility and for very mild cases.
 
-## 3. Technique B: directional ghost cancellation (step 1)
+## 3. Technique B: directional ghost cancellation (step 3)
 
 For a PSF elongated along an angle θ, EyesFree combines two things:
 
@@ -55,7 +83,7 @@ For a PSF elongated along an angle θ, EyesFree combines two things:
 
    with Δ = 1.3 / 1.1 px for orthogonal axes and 1.2 / 1.0 px per component for diagonals. The `outline` option draws a four-way light halo for users who see ghosting in every direction.
 
-The six step-1 cards show the same letters with each compensation. The user picks the one that looks **least doubled**, and the chosen direction is the one that best opposes their astigmatic axis.
+The six step-3 cards show the same letters with each compensation. The user picks the one that looks **least doubled**, and the chosen direction is the one that best opposes their astigmatic axis.
 
 ## 4. Technique C: anti-crowding spacing
 
@@ -83,7 +111,8 @@ In the web engine this is an `feComponentTransfer` primitive at the start of the
 ## 6. Order of operations
 
 ```
-tone mapping → directional kernel (step 1) → isotropic kernel (step 2) → shadows + spacing (text)
+tone mapping → directional kernel (step 3) → large-radius unsharp mask (step 2; or legacy 3×3 kernel)
+text: magnification (step 1) → stroke + shadows + spacing
 ```
 
 All adapters must respect this order so that profiles look the same everywhere.
@@ -93,9 +122,9 @@ All adapters must respect this order so that profiles look the same everywhere.
 Please read this section before you promote EyesFree to end users.
 
 - **It is not a medical device.** It cannot diagnose or treat any condition and does not replace glasses, contact lenses or an eye exam. Sudden changes in vision need a professional.
-- **The improvement is partial.** Screen-side pre-compensation cannot fully invert optical blur, because displays lack the dynamic range and are not light-field displays. Expect *easier* reading of text and numbers, not 20/20 vision. It works best for mild-to-moderate errors (up to about 2.5–3 D) at a fixed reading distance.
+- **The improvement is partial, and most of it comes from magnification.** Screen-side pre-sharpening cannot fully invert optical blur, because displays lack the dynamic range and are not light-field displays. Expect *easier* reading of text and numbers, not 20/20 vision. Sharpening adds a modest extra benefit on top of a larger text size, mostly for mild-to-moderate errors (up to about 2.5–3 D) at a fixed reading distance.
 - **Distance matters.** Presets assume phone distance (30–40 cm). Recalibrate when switching to a tablet or laptop.
-- **Pixel density matters.** SVG kernels operate on device pixels in most browsers, so the effect is subtler on very high-DPI screens. Use `intensity` (for example 1.25–1.5) to compensate.
+- **Pixel density.** The large-radius filter is expressed in CSS px, so it behaves the same on any DPI. The legacy 3×3 kernels operate on device pixels and become almost invisible on high-DPI screens.
 - **Images and video** inside a `root`-scoped filter are sharpened too. Use `scope: 'opt-in'` if that is undesirable.
 - **Dark themes:** the presets were tuned for dark text on a light background. Light-on-dark works, but it has not been tuned yet (see the roadmap).
 - **No clinical validation yet.** The presets come from informal perceptual testing. Contributions from optometrists and vision scientists are very welcome. See [CONTRIBUTING.md](../CONTRIBUTING.md).

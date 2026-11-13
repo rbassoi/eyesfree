@@ -36,7 +36,7 @@ import sharp from 'sharp';
 import { compensatePixels, createRenderPlan, decodeProfile } from '@eyesfree/core';
 
 const { data, info } = await sharp('receipt.png').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-const plan = createRenderPlan(decodeProfile('EF1.hm211.100.100'));
+const plan = createRenderPlan(decodeProfile('EF1.hm211.100.150.250'));
 const out = compensatePixels(new Uint8ClampedArray(data), info.width, info.height, plan);
 await sharp(Buffer.from(out), { raw: { width: info.width, height: info.height, channels: 4 } }).toFile('receipt-ef.png');
 ```

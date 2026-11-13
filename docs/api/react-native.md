@@ -30,7 +30,7 @@ It works with Expo and bare React Native ≥ 0.72, has no native code and needs 
 |---|---|
 | `<EyesFreeText>` | Drop-in `<Text>`. Applies letter spacing (converted from em using the style's `fontSize`), a ghost-cancelling shadow, a font-weight boost and `fontScale`. `eyesfreeIgnore` opts out. |
 | `<EyesFreeSurface kind="background" \| "surface">` | `<View>` that switches to the low-glare palette when active. |
-| `<EyesFreeCalibrator>` | Native two-step wizard (`messages`, `autoApply`, `initialProfile`, `onComplete`, `onCancel`, `accentColor`, `style`). |
+| `<EyesFreeCalibrator>` | Native wizard (two steps for now; the size and blur-size steps are on the roadmap) (`messages`, `autoApply`, `initialProfile`, `onComplete`, `onCancel`, `accentColor`, `style`). |
 
 ## Pure helpers
 

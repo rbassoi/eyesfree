@@ -21,6 +21,7 @@ npm install @eyesfree/web
 | `urlParam` | `string \| false` | `'eyesfree'` | Query/hash parameter carrying an EF1 code. |
 | `scope` | `'root' \| 'opt-in' \| 'none'` | `'root'` | Where the SVG filter applies ([details](../architecture.md#filter-scopes)). |
 | `surfaceMode` | `'tone' \| 'palette' \| 'both'` | `'tone'` | How luminance headroom is created ([details](../architecture.md#surface-modes)). |
+| `magnify` | `boolean` | `true` | Apply `fontScale` with CSS `zoom` on the root's children, so layout reflows. Set `false` to handle size yourself via `--eyesfree-font-scale`. |
 | `sync` | `boolean` | `true` | Cross-tab sync via `BroadcastChannel`. |
 | `injectStyles` | `boolean` | `true` | Set `false` if you ship `@eyesfree/web/eyesfree.css`. |
 | `nonce` | `string` | | CSP nonce for the injected `<style>`. |
@@ -69,7 +70,7 @@ document.addEventListener('eyesfree:change', (e) => console.log(e.detail.profile
 
 ### CSS custom properties (set on the root)
 
-`--eyesfree-filter`, `--eyesfree-text-shadow`, `--eyesfree-letter-spacing`, `--eyesfree-word-spacing`, `--eyesfree-font-scale`, `--eyesfree-font-weight-delta`, `--eyesfree-bg`, `--eyesfree-surface-bg`, `--eyesfree-border`, `--eyesfree-fg`.
+`--eyesfree-filter`, `--eyesfree-text-shadow`, `--eyesfree-text-stroke`, `--eyesfree-letter-spacing`, `--eyesfree-word-spacing`, `--eyesfree-font-scale`, `--eyesfree-font-weight-delta`, `--eyesfree-bg`, `--eyesfree-surface-bg`, `--eyesfree-border`, `--eyesfree-fg`.
 
 Use them in your own CSS:
 
@@ -110,6 +111,7 @@ c.terminate();
 |---|---|---|
 | `mode` | `'auto'` | `'worker'` rejects when no worker can be created; `'main-thread'` never spawns one. |
 | `workerUrl` | inline `blob:` | Static worker script, for strict CSP. Ship `@eyesfree/browser/worker`. |
+| `pixelRatio` | auto | Buffer pixels per CSS px (converts the blur radius). `compensateCanvas` derives it from the canvas' CSS size. |
 
 `createWorkerSource()` returns the worker script as a string.
 
@@ -119,8 +121,9 @@ c.terminate();
 |---|---|
 | `applyPreview(el, profileOrPlan, { filterId })` | Inline preview on one element (used by the wizard). Clips the filter to the element. |
 | `clearPreview(el)` | |
-| `simulateDefocus(el, { blurPx?, contrast? })` | Dev tool: blurs an element like an uncorrected eye. Returns an undo fn. |
-| `upsertFilter(id, plan, { doc?, colorSpace?, region? })` / `removeFilter(id)` | Manage SVG filters. |
+| `simulateDefocus(el, { blurPx?, contrast? })` | Dev tool: blurs an element like an uncorrected eye (default σ 2.5 px ≈ +2.00 D at 30–40 cm). Returns an undo fn. |
+| `upsertFilter(id, plan, { doc?, colorSpace?, region?, backdrop? })` / `removeFilter(id)` | Manage SVG filters. `region`: `default`, `element` or `padded`. |
+| `filterPrimitives(plan, backdrop?)` | The filter as data (tag + attributes), e.g. to port it to another renderer. |
 | `filterMarkup(id, plan)` | Static SVG string (SSR, copy-paste). |
 | `cssVariables(plan, filterValue)` | Map of CSS variables. |
 | `ensureStyles(doc, nonce?)`, `EYESFREE_CSS`, `CLASSES`, `ATTRIBUTES`, `CSS_VARS` | Stylesheet primitives. |

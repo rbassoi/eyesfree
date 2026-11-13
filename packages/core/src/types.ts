@@ -31,10 +31,17 @@ export interface VisionProfile {
   version: 1;
   /** Whether compensation should currently be applied. */
   enabled: boolean;
-  /** Step 1 result — ghost-cancellation direction. */
+  /** Step 3 result — ghost-cancellation direction. */
   ghostAxis: GhostAxis;
-  /** Step 2 result — deconvolution strength. */
+  /** Step 2 result — deconvolution (pre-sharpening) strength. */
   sharpness: SharpnessLevel;
+  /**
+   * Step 2 result — size of the user's blur, as the Gaussian σ in CSS pixels (0–12).
+   * Defocus at reading distance typically spreads each point over 5–20 CSS px, so the
+   * pre-sharpening must operate at that scale. `0` selects the legacy 3×3 kernel.
+   * Default 3.
+   */
+  blurRadius: number;
   /** Anti-crowding letter/word spacing level. */
   crowding: CrowdingLevel;
   /** Global multiplier applied to every kernel and shadow strength. Range 0.25–2. Default 1. */
@@ -44,7 +51,7 @@ export interface VisionProfile {
    * real luminous headroom on the display. Strongly recommended. Default true.
    */
   surfaceCompensation: boolean;
-  /** Text-size hint for hosts that support it (React Native, custom CSS). Range 1–2. Default 1. */
+  /** Step 1 result — text magnification. Range 1–2. Default 1. */
   fontScale: number;
   /** ISO-8601 timestamp of the last change (informational). */
   updatedAt?: string;
@@ -89,8 +96,15 @@ export interface RenderPlan {
   active: boolean;
   /** Tone mapping to apply first (null = none). */
   tone: ToneMapping | null;
-  /** Kernels to apply in order after tone mapping (may be empty). */
+  /** Small 3×3 kernels to apply in order after tone mapping (may be empty). */
   kernels: ConvolutionKernel[];
+  /**
+   * Large-radius pre-sharpening applied after the kernels (null = none):
+   * `out = in + amount × (in − gaussianBlur(in, sigma))`. `sigma` is in CSS pixels.
+   */
+  unsharp: UnsharpSpec | null;
+  /** Glyph stroke thickening in CSS px (e.g. `-webkit-text-stroke`). 0 = none. */
+  textStrokePx: number;
   /** Text shadows (first = most important, for platforms that support only one). */
   shadows: ShadowSpec[];
   /** Ready-to-use CSS `text-shadow` value (`none` when empty). */
@@ -101,10 +115,18 @@ export interface RenderPlan {
   wordSpacingEm: number;
   /** Suggested font-weight increase (0–300) for platforms without GPU convolution. */
   fontWeightDelta: number;
-  /** Font-size multiplier hint. */
+  /** Text magnification to apply. */
   fontScale: number;
   /** Suggested palette when surface compensation is on (null otherwise). */
   surface: SurfacePalette | null;
+}
+
+/** Large-radius unsharp-mask parameters. */
+export interface UnsharpSpec {
+  /** Gaussian σ in CSS pixels. */
+  sigma: number;
+  /** Boost amount (1 = add back 100 % of the high-pass). */
+  amount: number;
 }
 
 /** Result of {@link validateProfile}. */

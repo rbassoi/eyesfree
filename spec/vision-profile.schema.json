@@ -5,20 +5,60 @@
   "description": "A user's perceptual vision-compensation choices. Contains no medical data. See docs/profile-spec.md.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "enabled", "ghostAxis", "sharpness", "crowding", "intensity", "surfaceCompensation", "fontScale"],
+  "required": [
+    "version",
+    "enabled",
+    "ghostAxis",
+    "sharpness",
+    "blurRadius",
+    "crowding",
+    "intensity",
+    "surfaceCompensation",
+    "fontScale"
+  ],
   "properties": {
-    "version": { "const": 1, "description": "Schema version." },
-    "enabled": { "type": "boolean", "description": "Whether compensation is currently applied." },
+    "version": {
+      "const": 1,
+      "description": "Schema version."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether compensation is currently applied."
+    },
     "ghostAxis": {
-      "enum": ["none", "horizontal", "vertical", "diagonal45", "diagonal135", "outline"],
-      "description": "Step 1: direction of perceived ghosting. Angles counter-clockwise from horizontal: horizontal=0°, diagonal45=45° (↗↙), vertical=90°, diagonal135=135° (↖↘). outline = all directions."
+      "enum": [
+        "none",
+        "horizontal",
+        "vertical",
+        "diagonal45",
+        "diagonal135",
+        "outline"
+      ],
+      "description": "Step 3: direction of perceived ghosting. Angles counter-clockwise from horizontal: horizontal=0°, diagonal45=45° (↗↙), vertical=90°, diagonal135=135° (↖↘). outline = all directions."
     },
     "sharpness": {
-      "enum": ["none", "mild", "medium", "strong"],
-      "description": "Step 2: isotropic deconvolution strength."
+      "enum": [
+        "none",
+        "mild",
+        "medium",
+        "strong"
+      ],
+      "description": "Step 2: pre-sharpening strength."
+    },
+    "blurRadius": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 12,
+      "default": 3,
+      "description": "Step 2: size of the user's blur as a Gaussian sigma in CSS px. 0 selects the legacy 3x3 kernel."
     },
     "crowding": {
-      "enum": [0, 1, 2, 3],
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ],
       "description": "Anti-crowding spacing level."
     },
     "intensity": {
@@ -38,7 +78,7 @@
       "minimum": 1,
       "maximum": 2,
       "default": 1,
-      "description": "Text size multiplier hint for hosts that support it."
+      "description": "Step 1: text magnification."
     },
     "updatedAt": {
       "type": "string",
@@ -55,7 +95,8 @@
       "crowding": 2,
       "intensity": 1,
       "surfaceCompensation": true,
-      "fontScale": 1
+      "fontScale": 1.5,
+      "blurRadius": 3
     }
   ]
 }

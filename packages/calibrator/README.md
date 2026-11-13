@@ -1,6 +1,6 @@
 # @eyesfree/calibrator
 
-`<eyesfree-calibrator>` is the two-step perceptual calibration wizard of [EyesFree](https://github.com/rbassoi/eyesfree), packaged as a framework-agnostic, accessible and localised Web Component (en, pt-BR, es).
+`<eyesfree-calibrator>` is the three-step perceptual calibration wizard of [EyesFree](https://github.com/rbassoi/eyesfree), packaged as a framework-agnostic, accessible and localised Web Component (en, pt-BR, es).
 
 ```bash
 npm install @eyesfree/calibrator

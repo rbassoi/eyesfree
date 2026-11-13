@@ -6,6 +6,7 @@ export const CLASSES = Object.freeze({
   scopeRoot: 'eyesfree-scope-root',
   scopeOptIn: 'eyesfree-scope-opt-in',
   palette: 'eyesfree-palette',
+  zoom: 'eyesfree-zoom',
 });
 
 /** Data attributes understood by the stylesheet. */
@@ -26,6 +27,7 @@ export const CSS_VARS = Object.freeze({
   wordSpacing: '--eyesfree-word-spacing',
   fontScale: '--eyesfree-font-scale',
   fontWeightDelta: '--eyesfree-font-weight-delta',
+  textStroke: '--eyesfree-text-stroke',
   bg: '--eyesfree-bg',
   surfaceBg: '--eyesfree-surface-bg',
   border: '--eyesfree-border',
@@ -44,6 +46,12 @@ export const EYESFREE_CSS = `
   letter-spacing: var(${CSS_VARS.letterSpacing}, normal) !important;
   word-spacing: var(${CSS_VARS.wordSpacing}, normal) !important;
   text-shadow: var(${CSS_VARS.textShadow}, none) !important;
+  -webkit-text-stroke: var(${CSS_VARS.textStroke}, 0px) currentColor;
+}
+/* Magnification: applied to the root's children so the root's SVG filter keeps working in
+   real screen pixels (the user's blur size does not change when text gets bigger). */
+.${CLASSES.active}.${CLASSES.zoom} > :not([${ATTRIBUTES.ignore}], svg, script, style, dialog) {
+  zoom: var(${CSS_VARS.fontScale}, 1);
 }
 .${CLASSES.active}.${CLASSES.scopeRoot} {
   filter: var(${CSS_VARS.filter}, none);
@@ -83,6 +91,7 @@ export function cssVariables(plan: RenderPlan, filterValue = 'none'): Record<str
     [CSS_VARS.wordSpacing]: `${plan.wordSpacingEm}em`,
     [CSS_VARS.fontScale]: String(plan.fontScale),
     [CSS_VARS.fontWeightDelta]: String(plan.fontWeightDelta),
+    [CSS_VARS.textStroke]: `${plan.textStrokePx}px`,
   };
   if (plan.surface) {
     vars[CSS_VARS.bg] = plan.surface.background;

@@ -12,12 +12,13 @@ JSON Schema: [`spec/vision-profile.schema.json`](../spec/vision-profile.schema.j
 |---|---|---|---|---|
 | `version` | integer | `1` | `1` | Schema version |
 | `enabled` | boolean | | `true` | Whether compensation is applied |
-| `ghostAxis` | string | `none` `horizontal` `vertical` `diagonal45` `diagonal135` `outline` | `none` | Step-1 choice |
-| `sharpness` | string | `none` `mild` `medium` `strong` | `medium` | Step-2 choice |
+| `ghostAxis` | string | `none` `horizontal` `vertical` `diagonal45` `diagonal135` `outline` | `none` | Step-3 choice |
+| `sharpness` | string | `none` `mild` `medium` `strong` | `medium` | Step-2 choice (strength) |
+| `blurRadius` | number | `0`–`12` | `3` | Step-2 choice: blur size, Gaussian σ in CSS px. `0` = legacy 3×3 kernel |
 | `crowding` | integer | `0`–`3` | `2` | Spacing level |
 | `intensity` | number | `0.25`–`2` | `1` | Global strength multiplier |
 | `surfaceCompensation` | boolean | | `true` | Luminance headroom |
-| `fontScale` | number | `1`–`2` | `1` | Text-size hint |
+| `fontScale` | number | `1`–`2` | `1` | Step-1 choice: text magnification |
 | `updatedAt` | string | ISO-8601 | | Informational |
 
 **Normalisation.** Readers SHOULD accept partial or slightly invalid input by replacing invalid fields with the defaults and clamping numbers into range (`normalizeProfile`). Writers MUST emit valid profiles.
@@ -30,7 +31,7 @@ JSON Schema: [`spec/vision-profile.schema.json`](../spec/vision-profile.schema.j
 A compact, URL-safe text form for deep links, QR codes, push payloads and native↔WebView hand-off.
 
 ```
-EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>
+EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×100>[.<blurRadius×100>]
 ```
 
 | Position | Values |
@@ -42,18 +43,19 @@ EF1.<axis><sharpness><crowding><surface><enabled>.<intensity×100>.<fontScale×1
 | enabled | `1` on · `0` off |
 | intensity | integer, `25`–`200` |
 | fontScale | integer, `100`–`200` |
+| blurRadius | integer, `0`–`1200`. **Optional** when decoding (added in 0.2; absent ⇒ default 3 px). Encoders MUST emit it. |
 
-Regular expression: `^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})$`
+Regular expression: `^EF1\.([nhvabo])([nlms])([0-3])([01])([01])\.(\d{1,3})\.(\d{1,3})(?:\.(\d{1,4}))?$`
 
 Examples:
 
 | Code | Meaning |
 |---|---|
-| `EF1.nm211.100.100` | default: no ghosting, medium sharpness, medium spacing |
-| `EF1.hs311.125.100` | horizontal ghosting, strong, wide spacing, intensity 1.25 |
-| `EF1.vl110.100.140` | vertical, mild, soft spacing, **disabled**, font ×1.4 |
+| `EF1.nm211.100.100.300` | default: no ghosting, medium sharpness, blur 3 px, medium spacing |
+| `EF1.hs311.125.150.450` | horizontal ghosting, strong, wide spacing, intensity 1.25, text 150 %, blur 4.5 px |
+| `EF1.vl110.100.140.0` | vertical, mild (legacy 3×3), soft spacing, **disabled**, text 140 % |
 
-Decoders MUST reject codes that do not match the regex or whose numbers are out of range. Web apps read the code from the `eyesfree` query or hash parameter by default (`https://app.example/?eyesfree=EF1.nm211.100.100`).
+Decoders MUST reject codes that do not match the regex or whose numbers are out of range. Web apps read the code from the `eyesfree` query or hash parameter by default (`https://app.example/?eyesfree=EF1.nm211.100.150.300`).
 
 ## 3. Deriving the `RenderPlan`
 
@@ -62,9 +64,11 @@ Given a normalised profile `p`:
 1. If `p.enabled` is false, the plan is **inactive**: no tone, no kernels, no shadows, zero spacing, `fontScale = 1`.
 2. **Kernels** (in this order):
    1. If `ghostAxis` ∈ {horizontal, vertical, diagonal45, diagonal135}: `directionalKernel(angle, s × intensity)` with angle 0/90/45/135 and `s = 1.1` for 0°/90° or `1.0` for diagonals.
-   2. If `sharpness ≠ none`: `deconvolutionKernel(k × intensity, d × intensity)` with (k, d) = mild (0.55, 0) · medium (0.95, 0) · strong (1.15, 0.25).
+   2. If `sharpness ≠ none` **and `blurRadius = 0`**: `deconvolutionKernel(k × intensity, d × intensity)` with (k, d) = mild (0.55, 0) · medium (0.95, 0) · strong (1.15, 0.25).
+   - **Unsharp:** if `sharpness ≠ none` and `blurRadius > 0`: `{ sigma: blurRadius, amount: a × intensity }` with a = mild 0.6 · medium 1.0 · strong 1.5, applied **after** the kernels as `out = in + amount × (in − G_sigma ⊛ in)`. `sigma` is in CSS px (multiply by the device pixel ratio for raster buffers).
+   - **textStrokePx:** none 0 · mild 0.15 · medium 0.3 · strong 0.45, times `intensity`.
 3. **Shadows:** from `ghostAxis` (see § 5), with offsets multiplied by `intensity`.
-4. **Tone:** `{ slope: 0.86, intercept: 0.04 }` if `surfaceCompensation` and (kernels or shadows are non-empty); otherwise `null`.
+4. **Tone:** `{ slope: 0.86, intercept: 0.04 }` if `surfaceCompensation` and (kernels, unsharp or shadows are non-empty); otherwise `null`.
 5. **Spacing:** crowding 0→(0.010, 0.02) · 1→(0.040, 0.05) · 2→(0.065, 0.08) · 3→(0.095, 0.12) em (letter, word).
 6. **fontWeightDelta:** none 0 · mild 100 · medium 200 · strong 300 (for renderers without convolution).
 7. **surface palette:** `{ background #E4E7EC, surface #EAECEF, border #CBD5E1, text #0F172A }` if `surfaceCompensation`.
@@ -133,8 +137,8 @@ Run these checks to confirm a port in another language (Dart, Swift, Kotlin, C#,
 - [ ] EF1 `encode(decode(x)) == x` for every valid code; invalid codes are rejected
 - [ ] Kernels match the reference table above exactly
 - [ ] Shadows match the reference CSS above
-- [ ] Pipeline order: tone → directional → isotropic → shadows / spacing
+- [ ] Pipeline order: tone → directional → isotropic (legacy) → unsharp; text: magnification → stroke / shadows / spacing
 - [ ] Pixel pipeline output equals `compensatePixels` from `@eyesfree/core` on the test image used in `packages/core/test` (±1 per channel for float differences)
-- [ ] The UI calls the steps "Step 1 · least doubled" and "Step 2 · easiest to read", and offers a way to turn compensation off
+- [ ] The UI offers the three steps (smallest comfortable size · blur size + easiest to read · least doubled) and a way to turn compensation off
 
 Please open a PR adding your port to [docs/integrations](integrations/README.md).

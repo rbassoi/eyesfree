@@ -20,6 +20,7 @@ import {
   serializeProfile,
   SHARPNESS_PRESETS,
   shadowsToCss,
+  unsharpRGBA,
   validateProfile,
 } from '@eyesfree/core';
 import type { VisionProfile } from '@eyesfree/core';
@@ -114,6 +115,7 @@ describe('codec', () => {
     enabled: true,
     ghostAxis: 'diagonal45',
     sharpness: 'strong',
+    blurRadius: 2.5,
     crowding: 3,
     intensity: 1.25,
     surfaceCompensation: false,
@@ -122,8 +124,13 @@ describe('codec', () => {
 
   it('round-trips every field', () => {
     const code = encodeProfile(sample);
-    expect(code).toBe('EF1.as301.125.140');
+    expect(code).toBe('EF1.as301.125.140.250');
     expect(decodeProfile(code)).toEqual(sample);
+  });
+
+  it('still decodes 0.1 codes (no blur-radius segment) with the default radius', () => {
+    expect(decodeProfile('EF1.as301.125.140')).toEqual({ ...sample, blurRadius: DEFAULT_PROFILE.blurRadius });
+    expect(decodeProfile('EF1.nm211.100.100.1300')).toBeNull(); // radius 13 > 12
   });
 
   it('rejects malformed or out-of-range codes', () => {
@@ -148,8 +155,8 @@ describe('render plan', () => {
     expect(createRenderPlan({ enabled: false }).active).toBe(false);
   });
 
-  it('orders kernels: directional first, then isotropic', () => {
-    const plan = createRenderPlan({ ghostAxis: 'horizontal', sharpness: 'medium' });
+  it('orders kernels: directional first, then isotropic (legacy blurRadius 0)', () => {
+    const plan = createRenderPlan({ ghostAxis: 'horizontal', sharpness: 'medium', blurRadius: 0 });
     expect(plan.kernels).toHaveLength(2);
     expect(plan.kernels[0]).toEqual(ghostKernel('horizontal'));
     expect(plan.kernels[1]).toEqual(deconvolutionKernel(0.95));
@@ -162,8 +169,18 @@ describe('render plan', () => {
   });
 
   it('scales strength with intensity', () => {
-    const k = createRenderPlan({ sharpness: 'mild', intensity: 2 }).kernels[0]!;
+    const k = createRenderPlan({ sharpness: 'mild', intensity: 2, blurRadius: 0 }).kernels[0]!;
     expect(k.matrix[1]).toBeCloseTo(-1.1);
+    expect(createRenderPlan({ sharpness: 'mild', intensity: 2 }).unsharp).toEqual({ sigma: 3, amount: 1.2 });
+  });
+
+  it('uses a large-radius unsharp mask sized to the blur, plus stroke and magnification', () => {
+    const plan = createRenderPlan({ sharpness: 'strong', blurRadius: 5, fontScale: 1.5 });
+    expect(plan.kernels).toHaveLength(0);
+    expect(plan.unsharp).toEqual({ sigma: 5, amount: 1.5 });
+    expect(plan.textStrokePx).toBe(0.45);
+    expect(plan.fontScale).toBe(1.5);
+    expect(createRenderPlan({ sharpness: 'none', blurRadius: 5 }).unsharp).toBeNull();
   });
 });
 
@@ -191,10 +208,21 @@ describe('pixels', () => {
     expect(out[3]).toBe(200); // alpha untouched
   });
 
+  it('unsharp mask keeps flat areas, boosts edges, and is a no-op with amount 0', () => {
+    const src = img();
+    const out = unsharpRGBA(src, W, H, 1.5, 1);
+    expect(out[0]).toBe(0);
+    expect(out[3]).toBe(200);
+    // pixel just right of the edge (white) overshoots / clips to 255, just left goes to 0
+    expect(out[2 * 4]).toBe(255);
+    expect(out[1 * 4]).toBe(0);
+    expect(Array.from(unsharpRGBA(src, W, H, 2, 0))).toEqual(Array.from(src));
+  });
+
   it('runs the full pipeline without mutating the input', () => {
     const src = img();
     const copy = Array.from(src);
-    const out = compensatePixels(src, W, H, createRenderPlan({ sharpness: 'medium' }));
+    const out = compensatePixels(src, W, H, createRenderPlan({ sharpness: 'medium', blurRadius: 0 }));
     expect(Array.from(src)).toEqual(copy);
     expect(out[(W - 1) * 4]).toBeLessThanOrEqual(255);
     // tone mapping lifted pure black away from 0 in the flat area

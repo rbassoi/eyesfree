@@ -8,7 +8,7 @@ npm install @eyesfree/core
 
 ```ts
 import { createRenderPlan, decodeProfile } from '@eyesfree/core';
-const plan = createRenderPlan(decodeProfile('EF1.hm211.100.100'));
+const plan = createRenderPlan(decodeProfile('EF1.hm211.100.150.250'));
 ```
 
 📚 [API reference](https://github.com/rbassoi/eyesfree/blob/main/docs/api/core.md) · 📄 [Spec](https://github.com/rbassoi/eyesfree/blob/main/docs/profile-spec.md) · Apache-2.0 (keep the NOTICE file).

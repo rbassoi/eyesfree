@@ -6,17 +6,22 @@ import {
   SHARPNESS_WEIGHT_DELTA,
   SURFACE_PALETTE,
   SURFACE_TONE,
+  TEXT_STROKE_PX,
+  UNSHARP_AMOUNT,
 } from './constants.js';
+import { roundWeight } from './kernels.js';
 import { deconvolutionKernel, directionalKernel } from './kernels.js';
 import { normalizeProfile } from './profile.js';
 import { ghostShadows, shadowsToCss } from './shadows.js';
-import type { ConvolutionKernel, GhostAxis, RenderPlan, VisionProfile } from './types.js';
+import type { ConvolutionKernel, GhostAxis, RenderPlan, UnsharpSpec, VisionProfile } from './types.js';
 
 /** Plan that renders content untouched. */
 export const INACTIVE_PLAN: Readonly<RenderPlan> = Object.freeze({
   active: false,
   tone: null,
   kernels: [],
+  unsharp: null,
+  textStrokePx: 0,
   shadows: [],
   textShadowCss: 'none',
   letterSpacingEm: 0,
@@ -39,9 +44,10 @@ export function ghostKernel(axis: GhostAxis, intensity = 1): ConvolutionKernel |
  *
  * Pipeline order, which every adapter must respect:
  * 1. tone mapping (surface compensation)
- * 2. directional anti-ghosting kernel (step 1 choice)
- * 3. isotropic deconvolution kernel (step 2 choice)
- * 4. text shadows + spacing (text only)
+ * 2. directional anti-ghosting kernel (step 3 choice)
+ * 3. pre-sharpening (step 2 choice): large-radius unsharp mask when `blurRadius > 0`,
+ *    otherwise the legacy isotropic 3×3 kernel
+ * 4. text magnification, stroke, shadows and spacing (text only)
  */
 export function createRenderPlan(input: Partial<VisionProfile> | VisionProfile | null | undefined): RenderPlan {
   if (input === null || input === undefined) return { ...INACTIVE_PLAN };
@@ -51,19 +57,26 @@ export function createRenderPlan(input: Partial<VisionProfile> | VisionProfile |
   const kernels: ConvolutionKernel[] = [];
   const g = ghostKernel(p.ghostAxis, p.intensity);
   if (g) kernels.push(g);
+  let unsharp: UnsharpSpec | null = null;
   if (p.sharpness !== 'none') {
-    const { k, d } = SHARPNESS_PRESETS[p.sharpness];
-    kernels.push(deconvolutionKernel(k * p.intensity, d * p.intensity));
+    if (p.blurRadius > 0) {
+      unsharp = { sigma: roundWeight(p.blurRadius), amount: roundWeight(UNSHARP_AMOUNT[p.sharpness] * p.intensity) };
+    } else {
+      const { k, d } = SHARPNESS_PRESETS[p.sharpness];
+      kernels.push(deconvolutionKernel(k * p.intensity, d * p.intensity));
+    }
   }
 
   const shadows = ghostShadows(p.ghostAxis, p.intensity);
   const spacing = CROWDING_SPACING[p.crowding];
-  const needsHeadroom = kernels.length > 0 || shadows.length > 0;
+  const needsHeadroom = kernels.length > 0 || unsharp !== null || shadows.length > 0;
 
   return {
     active: true,
     tone: p.surfaceCompensation && needsHeadroom ? { ...SURFACE_TONE } : null,
     kernels,
+    unsharp,
+    textStrokePx: roundWeight(TEXT_STROKE_PX[p.sharpness] * p.intensity),
     shadows,
     textShadowCss: shadowsToCss(shadows),
     letterSpacingEm: spacing.letter,

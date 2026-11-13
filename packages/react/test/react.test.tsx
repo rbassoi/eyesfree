@@ -43,6 +43,9 @@ describe('@eyesfree/react', () => {
     });
     await act(async () => {
       (cal.querySelector('[data-sharpness="strong"]') as HTMLElement).click();
+      (cal.querySelector('[data-action="next"]') as HTMLElement).click();
+    });
+    await act(async () => {
       (cal.querySelector('[data-action="apply"]') as HTMLElement).click();
     });
 

@@ -98,10 +98,10 @@ This is the **only** thing that is persisted or transmitted. It contains no pres
 ```mermaid
 flowchart LR
   A[pixels] --> B[tone mapping<br/>white→0.90 · black→0.04]
-  B --> C[directional kernel<br/>step 1 · anti-ghosting]
-  C --> D[isotropic kernel<br/>step 2 · deconvolution]
+  B --> C[directional kernel<br/>step 3 · anti-ghosting]
+  C --> D[large-radius unsharp mask<br/>step 2 · blur size × strength]
   D --> E[screen]
-  T[text] --> S[letter/word spacing<br/>+ ghost-cancelling shadows] --> E
+  T[text] --> Z[magnification<br/>step 1 · zoom] --> S[stroke + letter/word spacing<br/>+ ghost-cancelling shadows] --> E
 ```
 
 ## 4. Runtime flow (web)

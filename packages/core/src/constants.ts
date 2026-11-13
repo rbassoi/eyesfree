@@ -8,6 +8,36 @@ export const CROWDING_LEVELS: readonly CrowdingLevel[] = [0, 1, 2, 3];
 
 export const INTENSITY_RANGE = { min: 0.25, max: 2 } as const;
 export const FONT_SCALE_RANGE = { min: 1, max: 2 } as const;
+/** Blur radius (Gaussian σ, CSS px). 0 selects the legacy 3×3 kernel. */
+export const BLUR_RADIUS_RANGE = { min: 0, max: 12 } as const;
+
+/** Text-size options offered by the calibrator. */
+export const FONT_SCALE_STEPS: readonly number[] = [1, 1.25, 1.5, 1.75, 2];
+
+/**
+ * Blur-radius stops offered by the calibrator slider (σ in CSS px).
+ *
+ * Rough guide: an eye defocused by D dioptres with a ~4 mm pupil spreads each point over
+ * ≈ 4·D milliradians; at 30–40 cm that is ≈ 1.2–1.6·D mm on screen, i.e. ≈ 5·D CSS px
+ * on a typical desktop (σ ≈ diameter / 4 ≈ 1.2·D px). Users simply pick what looks best.
+ */
+export const BLUR_RADIUS_STEPS: readonly number[] = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+/** Unsharp amount per sharpness level (used when `blurRadius > 0`). */
+export const UNSHARP_AMOUNT: Readonly<Record<SharpnessLevel, number>> = {
+  none: 0,
+  mild: 0.6,
+  medium: 1.0,
+  strong: 1.5,
+};
+
+/** Stroke thickening per sharpness level (CSS px) — thicker strokes survive blur better. */
+export const TEXT_STROKE_PX: Readonly<Record<SharpnessLevel, number>> = {
+  none: 0,
+  mild: 0.15,
+  medium: 0.3,
+  strong: 0.45,
+};
 
 /** Angle (degrees, counter-clockwise from horizontal) for each directional ghost axis. */
 export const GHOST_AXIS_ANGLE: Readonly<Record<GhostAxis, number | null>> = {
@@ -86,6 +116,7 @@ export const DEFAULT_PROFILE: Readonly<VisionProfile> = Object.freeze({
   enabled: true,
   ghostAxis: 'none',
   sharpness: 'medium',
+  blurRadius: 3,
   crowding: 2,
   intensity: 1,
   surfaceCompensation: true,

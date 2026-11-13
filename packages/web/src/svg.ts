@@ -9,11 +9,104 @@ export const DEFS_ID = 'eyesfree-svg-defs';
 /** Colour space used by SVG filters. `sRGB` matches the canvas/worker pipeline exactly. */
 export type FilterColorSpace = 'sRGB' | 'linearRGB';
 
-type FilterPlan = Pick<RenderPlan, 'active' | 'tone' | 'kernels'>;
+type FilterPlan = Pick<RenderPlan, 'active' | 'tone' | 'kernels'> & Partial<Pick<RenderPlan, 'unsharp'>>;
+
+/** A filter primitive, independent of how it is materialised (DOM or string). */
+export interface FilterPrimitive {
+  tag: string;
+  attrs: Record<string, string>;
+  children?: FilterPrimitive[];
+}
+
+/** Filter region strategy (see {@link upsertFilter}). */
+export type FilterRegion =
+  /** SVG default (bbox + 10 %). */
+  | 'default'
+  /** Exactly the element box — avoids frames around small elements with 3×3 kernels. */
+  | 'element'
+  /** Generous padding (for large-radius blur); combine with `backdrop` and a clipping parent. */
+  | 'padded';
 
 /** True when the plan needs an SVG filter at all. */
 export function planNeedsFilter(plan: FilterPlan): boolean {
-  return plan.active && (plan.tone !== null || plan.kernels.length > 0);
+  return plan.active && (plan.tone !== null || plan.kernels.length > 0 || !!plan.unsharp);
+}
+
+/**
+ * The primitives of a plan's filter, chained with named results:
+ * [backdrop] → tone → 3×3 kernels → large-radius unsharp mask.
+ *
+ * @param backdrop optional opaque colour painted under the source first, so a large blur does
+ *                 not pull transparent pixels into the element's edges.
+ */
+export function filterPrimitives(plan: FilterPlan, backdrop?: string): FilterPrimitive[] {
+  const out: FilterPrimitive[] = [];
+  let last = 'SourceGraphic';
+  let n = 0;
+  const next = () => `ef${n++}`;
+
+  if (backdrop) {
+    const bd = next();
+    out.push({ tag: 'feFlood', attrs: { 'flood-color': backdrop, result: bd } });
+    const merged = next();
+    out.push({
+      tag: 'feMerge',
+      attrs: { result: merged },
+      children: [
+        { tag: 'feMergeNode', attrs: { in: bd } },
+        { tag: 'feMergeNode', attrs: { in: 'SourceGraphic' } },
+      ],
+    });
+    last = merged;
+  }
+  if (plan.tone) {
+    const r = next();
+    const s = String(roundWeight(plan.tone.slope));
+    const i = String(roundWeight(plan.tone.intercept));
+    out.push({
+      tag: 'feComponentTransfer',
+      attrs: { in: last, result: r },
+      children: ['feFuncR', 'feFuncG', 'feFuncB'].map((tag) => ({ tag, attrs: { type: 'linear', slope: s, intercept: i } })),
+    });
+    last = r;
+  }
+  for (const kernel of plan.kernels) {
+    const r = next();
+    out.push({
+      tag: 'feConvolveMatrix',
+      attrs: {
+        in: last,
+        order: '3 3',
+        kernelMatrix: kernelToString(kernel),
+        divisor: '1',
+        edgeMode: 'duplicate',
+        preserveAlpha: 'true',
+        result: r,
+      },
+    });
+    last = r;
+  }
+  if (plan.unsharp && plan.unsharp.sigma > 0 && plan.unsharp.amount !== 0) {
+    const blur = next();
+    const a = plan.unsharp.amount;
+    out.push({ tag: 'feGaussianBlur', attrs: { in: last, stdDeviation: String(roundWeight(plan.unsharp.sigma)), result: blur } });
+    const r = next();
+    out.push({
+      tag: 'feComposite',
+      attrs: {
+        in: last,
+        in2: blur,
+        operator: 'arithmetic',
+        k1: '0',
+        k2: String(roundWeight(1 + a)),
+        k3: String(roundWeight(-a)),
+        k4: '0',
+        result: r,
+      },
+    });
+    last = r;
+  }
+  return out;
 }
 
 /** Returns (creating if needed) the hidden `<svg><defs>` container. */
@@ -38,28 +131,19 @@ export function getDefs(doc: Document = document): SVGDefsElement {
   return defs as SVGDefsElement;
 }
 
-function buildPrimitives(doc: Document, filter: Element, plan: FilterPlan): void {
-  if (plan.tone) {
-    const ct = doc.createElementNS(SVG_NS, 'feComponentTransfer');
-    for (const ch of ['feFuncR', 'feFuncG', 'feFuncB']) {
-      const fn = doc.createElementNS(SVG_NS, ch);
-      fn.setAttribute('type', 'linear');
-      fn.setAttribute('slope', String(roundWeight(plan.tone.slope)));
-      fn.setAttribute('intercept', String(roundWeight(plan.tone.intercept)));
-      ct.appendChild(fn);
-    }
-    filter.appendChild(ct);
-  }
-  for (const kernel of plan.kernels) {
-    const cm = doc.createElementNS(SVG_NS, 'feConvolveMatrix');
-    cm.setAttribute('order', '3 3');
-    cm.setAttribute('kernelMatrix', kernelToString(kernel));
-    cm.setAttribute('divisor', '1');
-    cm.setAttribute('edgeMode', 'duplicate');
-    cm.setAttribute('preserveAlpha', 'true');
-    filter.appendChild(cm);
+function materialise(doc: Document, parent: Element, prims: FilterPrimitive[]): void {
+  for (const p of prims) {
+    const el = doc.createElementNS(SVG_NS, p.tag);
+    for (const [k, v] of Object.entries(p.attrs)) el.setAttribute(k, v);
+    if (p.children) materialise(doc, el, p.children);
+    parent.appendChild(el);
   }
 }
+
+const REGIONS: Record<Exclude<FilterRegion, 'default'>, [string, string, string, string]> = {
+  element: ['0', '0', '1', '1'],
+  padded: ['-0.25', '-1', '1.5', '3'],
+};
 
 /**
  * Creates or replaces `<filter id>` for a plan.
@@ -75,11 +159,13 @@ export function upsertFilter(
     colorSpace?: FilterColorSpace;
     /**
      * `default` keeps the SVG default filter region (bbox + 10%), so content overflowing the
-     * element is still rendered. `element` clips the region to the element's own box: with
-     * `edgeMode="duplicate"` this avoids a bright frame around small opaque elements
-     * (previews, badges, cards).
+     * element is still rendered. `element` clips the region to the element's own box (avoids
+     * a bright frame around small elements with 3×3 kernels). `padded` enlarges it for
+     * large-radius blur previews (use with `backdrop` inside a parent with `overflow:hidden`).
      */
-    region?: 'default' | 'element';
+    region?: FilterRegion;
+    /** Opaque colour painted under the source before filtering. */
+    backdrop?: string;
   } = {},
 ): string {
   const doc = options.doc ?? document;
@@ -96,16 +182,18 @@ export function upsertFilter(
     defs.appendChild(filter);
   }
   filter.setAttribute('color-interpolation-filters', options.colorSpace ?? 'sRGB');
-  if (options.region === 'element') {
-    filter.setAttribute('x', '0');
-    filter.setAttribute('y', '0');
-    filter.setAttribute('width', '1');
-    filter.setAttribute('height', '1');
-  } else {
+  const region = options.region ?? 'default';
+  if (region === 'default') {
     for (const a of ['x', 'y', 'width', 'height']) filter.removeAttribute(a);
+  } else {
+    const [x, y, w, h] = REGIONS[region];
+    filter.setAttribute('x', x);
+    filter.setAttribute('y', y);
+    filter.setAttribute('width', w);
+    filter.setAttribute('height', h);
   }
   while (filter.firstChild) filter.removeChild(filter.firstChild);
-  buildPrimitives(doc, filter, plan);
+  materialise(doc, filter, filterPrimitives(plan, options.backdrop));
   return `url(#${id})`;
 }
 
@@ -115,26 +203,24 @@ export function removeFilter(id: string, doc: Document = document): void {
   if (el && el.tagName.toLowerCase() === 'filter') el.remove();
 }
 
+const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+function primitivesToString(prims: FilterPrimitive[]): string {
+  return prims
+    .map((p) => {
+      const attrs = Object.entries(p.attrs)
+        .map(([k, v]) => ` ${k}="${escAttr(v)}"`)
+        .join('');
+      return p.children ? `<${p.tag}${attrs}>${primitivesToString(p.children)}</${p.tag}>` : `<${p.tag}${attrs}/>`;
+    })
+    .join('');
+}
+
 /**
- * Static SVG markup for a plan — handy for server-side rendering, e-mail-free static
- * pages, or copy-pasting into an existing `index.html`.
+ * Static SVG markup for a plan — handy for server-side rendering, static pages, or
+ * copy-pasting into an existing `index.html`.
  */
 export function filterMarkup(id: string, plan: FilterPlan, colorSpace: FilterColorSpace = 'sRGB'): string {
   if (!planNeedsFilter(plan)) return '';
-  const parts: string[] = [];
-  if (plan.tone) {
-    const s = roundWeight(plan.tone.slope);
-    const i = roundWeight(plan.tone.intercept);
-    parts.push(
-      `<feComponentTransfer>${['R', 'G', 'B']
-        .map((c) => `<feFunc${c} type="linear" slope="${s}" intercept="${i}"/>`)
-        .join('')}</feComponentTransfer>`,
-    );
-  }
-  for (const k of plan.kernels) {
-    parts.push(
-      `<feConvolveMatrix order="3 3" kernelMatrix="${kernelToString(k)}" divisor="1" edgeMode="duplicate" preserveAlpha="true"/>`,
-    );
-  }
-  return `<svg xmlns="${SVG_NS}" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs><filter id="${id}" color-interpolation-filters="${colorSpace}">${parts.join('')}</filter></defs></svg>`;
+  return `<svg xmlns="${SVG_NS}" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs><filter id="${id}" color-interpolation-filters="${colorSpace}">${primitivesToString(filterPrimitives(plan))}</filter></defs></svg>`;
 }

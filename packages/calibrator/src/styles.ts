@@ -73,8 +73,12 @@ eyesfree-calibrator * { box-sizing: border-box; }
   display: block; color: #0f172a; background: var(--efc-sample-bg);
   padding: 4px 6px; border-radius: 6px;
 }
-.efc-sample-letters { font-size: 1.9rem; font-weight: 800; letter-spacing: 0.05em; line-height: 1.2; }
-.efc-sample-word { font-size: 0.8rem; font-weight: 600; }
+/* The clip box hides the padded filter region of large-radius previews. */
+.efc-clip { display: block; overflow: hidden; border-radius: 8px; max-width: 100%; }
+.efc-list .efc-clip { width: 100%; }
+.efc-sample-stack { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; }
+.efc-sample-letters { display: block; font-size: 1.9rem; font-weight: 800; letter-spacing: 0.05em; line-height: 1.2; }
+.efc-sample-word { display: block; font-size: 0.8rem; font-weight: 600; }
 .efc-sample-text { font-size: 1.15rem; font-weight: 700; line-height: 1.35; }
 .efc-slider {
   display: block; background: #f1f5f9; border: 1px solid var(--efc-card-border);

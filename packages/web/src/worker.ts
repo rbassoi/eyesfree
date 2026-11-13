@@ -1,4 +1,4 @@
-import { compensatePixels, convolveRGBA, createRenderPlan, toneMapRGBA } from '@eyesfree/core';
+import { compensatePixels, convolveRGBA, createRenderPlan, toneMapRGBA, unsharpRGBA } from '@eyesfree/core';
 import type { RenderPlan, VisionProfile } from '@eyesfree/core';
 
 /** Minimal raster shape (`ImageData` satisfies it). */
@@ -17,6 +17,8 @@ interface WorkerRequest {
   buffer: ArrayBuffer;
   tone: { slope: number; intercept: number } | null;
   kernels: number[][];
+  /** σ already converted to buffer pixels. */
+  unsharp: { sigma: number; amount: number } | null;
 }
 
 interface WorkerResponse {
@@ -37,12 +39,14 @@ export function createWorkerSource(): string {
     '"use strict";',
     `var convolveRGBA = ${convolveRGBA.toString()};`,
     `var toneMapRGBA = ${toneMapRGBA.toString()};`,
+    `var unsharpRGBA = ${unsharpRGBA.toString()};`,
     'self.onmessage = function (e) {',
     '  var m = e.data;',
     '  try {',
     '    var buf = new Uint8ClampedArray(m.buffer);',
     '    if (m.tone) toneMapRGBA(buf, m.tone.slope, m.tone.intercept);',
     '    for (var i = 0; i < m.kernels.length; i++) buf = convolveRGBA(buf, m.width, m.height, m.kernels[i]);',
+    '    if (m.unsharp) buf = unsharpRGBA(buf, m.width, m.height, m.unsharp.sigma, m.unsharp.amount);',
     '    self.postMessage({ id: m.id, buffer: buf.buffer }, [buf.buffer]);',
     '  } catch (err) {',
     '    self.postMessage({ id: m.id, error: String(err && err.message || err) });',
@@ -60,6 +64,11 @@ export interface ImageCompensatorOptions {
   mode?: 'auto' | 'worker' | 'main-thread';
   /** URL of a static worker script (CSP-friendly). Default: an inline `blob:` worker. */
   workerUrl?: string | URL;
+  /**
+   * Buffer pixels per CSS pixel, used to convert the plan's blur radius (CSS px). Default:
+   * `1` for `process()`, and the canvas' backing-store / CSS-size ratio for `compensateCanvas()`.
+   */
+  pixelRatio?: number;
 }
 
 const toPlan = (input: PlanInput): RenderPlan =>
@@ -92,7 +101,7 @@ export class ImageCompensator {
   private seq = 0;
   private readonly pending = new Map<
     number,
-    { resolve: (b: PixelBuffer) => void; reject: (e: unknown) => void; input: PixelBuffer; plan: RenderPlan }
+    { resolve: (b: PixelBuffer) => void; reject: (e: unknown) => void; input: PixelBuffer; plan: RenderPlan; pixelRatio: number }
   >();
 
   constructor(private readonly options: ImageCompensatorOptions = {}) {}
@@ -106,20 +115,20 @@ export class ImageCompensator {
    * Compensates a pixel buffer. The input is not modified.
    * @param plan a render plan, or a (partial) profile
    */
-  process(image: PixelBuffer, plan: PlanInput): Promise<PixelBuffer> {
+  process(image: PixelBuffer, plan: PlanInput, pixelRatio = this.options.pixelRatio ?? 1): Promise<PixelBuffer> {
     const p = toPlan(plan);
     const { width, height } = image;
-    if (!p.active || (p.tone === null && p.kernels.length === 0)) {
+    if (!p.active || (p.tone === null && p.kernels.length === 0 && !p.unsharp)) {
       return Promise.resolve(makeImageData(new Uint8ClampedArray(image.data), width, height));
     }
     const worker = this.ensureWorker();
     if (!worker) {
       if (this.options.mode === 'worker') return Promise.reject(new Error('[eyesfree] Web Worker unavailable'));
-      return Promise.resolve(this.runMainThread(image, p));
+      return Promise.resolve(this.runMainThread(image, p, pixelRatio));
     }
     return new Promise<PixelBuffer>((resolve, reject) => {
       const id = ++this.seq;
-      this.pending.set(id, { resolve, reject, input: image, plan: p });
+      this.pending.set(id, { resolve, reject, input: image, plan: p, pixelRatio });
       const copy = new Uint8ClampedArray(image.data);
       const msg: WorkerRequest = {
         id,
@@ -128,6 +137,7 @@ export class ImageCompensator {
         buffer: copy.buffer as ArrayBuffer,
         tone: p.tone,
         kernels: p.kernels.map((k) => k.matrix),
+        unsharp: p.unsharp ? { sigma: p.unsharp.sigma * pixelRatio, amount: p.unsharp.amount } : null,
       };
       worker.postMessage(msg, [msg.buffer]);
     });
@@ -138,7 +148,8 @@ export class ImageCompensator {
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
     if (!ctx) throw new Error('[eyesfree] 2D context unavailable');
     const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const out = await this.process(src, plan);
+    const cssWidth = 'clientWidth' in canvas && canvas.clientWidth ? canvas.clientWidth : canvas.width;
+    const out = await this.process(src, plan, this.options.pixelRatio ?? canvas.width / cssWidth);
     const imageData =
       typeof ImageData !== 'undefined' && out instanceof ImageData
         ? out
@@ -170,8 +181,8 @@ export class ImageCompensator {
     this.flushPendingOnMainThread();
   }
 
-  private runMainThread(image: PixelBuffer, plan: RenderPlan): PixelBuffer {
-    return makeImageData(compensatePixels(image.data, image.width, image.height, plan), image.width, image.height);
+  private runMainThread(image: PixelBuffer, plan: RenderPlan, pixelRatio: number): PixelBuffer {
+    return makeImageData(compensatePixels(image.data, image.width, image.height, plan, pixelRatio), image.width, image.height);
   }
 
   private ensureWorker(): Worker | null {
@@ -210,7 +221,7 @@ export class ImageCompensator {
     if (msg.error || !msg.buffer) {
       // Retry on the main thread rather than failing the caller.
       try {
-        job.resolve(this.runMainThread(job.input, job.plan));
+        job.resolve(this.runMainThread(job.input, job.plan, job.pixelRatio));
       } catch (e) {
         job.reject(e);
       }
@@ -223,7 +234,7 @@ export class ImageCompensator {
     for (const [id, job] of this.pending) {
       this.pending.delete(id);
       try {
-        job.resolve(this.runMainThread(job.input, job.plan));
+        job.resolve(this.runMainThread(job.input, job.plan, job.pixelRatio));
       } catch (e) {
         job.reject(e);
       }

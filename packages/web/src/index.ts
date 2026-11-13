@@ -17,8 +17,8 @@ export type {
 export { localStorageAdapter, memoryAdapter, storageFrom } from './storage.js';
 export type { StorageAdapter, StorageLike } from './storage.js';
 
-export { DEFS_ID, filterMarkup, getDefs, planNeedsFilter, removeFilter, upsertFilter } from './svg.js';
-export type { FilterColorSpace } from './svg.js';
+export { DEFS_ID, filterMarkup, filterPrimitives, getDefs, planNeedsFilter, removeFilter, upsertFilter } from './svg.js';
+export type { FilterColorSpace, FilterPrimitive, FilterRegion } from './svg.js';
 
 export {
   ATTRIBUTES,

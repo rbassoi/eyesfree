@@ -5,8 +5,17 @@ export interface CalibratorMessages {
   title: string;
   /** Template with `{current}` and `{total}`. */
   stepIndicator: string;
-  step1Instruction: string;
-  step2Instruction: string;
+  /** Step 1 — text size. */
+  sizeInstruction: string;
+  sizeGroupLabel: string;
+  /** Template with `{percent}`. */
+  sizeOption: string;
+  /** Step 2 — sharpness. */
+  sharpnessInstruction: string;
+  radiusLabel: string;
+  radiusHint: string;
+  /** Step 3 — doubled letters. */
+  ghostInstruction: string;
   ghostGroupLabel: string;
   sharpnessGroupLabel: string;
   ghost: Record<GhostAxis, string>;
@@ -26,9 +35,14 @@ export interface CalibratorMessages {
 export const en: CalibratorMessages = {
   title: 'Reading without glasses',
   stepIndicator: 'Step {current} of {total}',
-  step1Instruction:
-    'Take off your glasses, hold the screen at your usual distance and tap the box where the letters look LEAST doubled or overlapping.',
-  step2Instruction: 'Now tap the sentence where the letters and numbers are easiest to read without squinting.',
+  sizeInstruction: 'Take off your glasses and sit at your usual distance. Tap the SMALLEST text you can read without effort.',
+  sizeGroupLabel: 'Which is the smallest comfortable size?',
+  sizeOption: 'Size {percent}%',
+  sharpnessInstruction:
+    'Move the slider until the sentences look sharpest, then tap the one that is easiest to read.',
+  radiusLabel: 'Blur size',
+  radiusHint: 'Small ← → Large',
+  ghostInstruction: 'Do the letters look doubled? Tap the box where they look LEAST doubled (or "Standard" if none).',
   ghostGroupLabel: 'Which box looks least doubled?',
   sharpnessGroupLabel: 'Which sentence is easiest to read?',
   ghost: {
@@ -41,9 +55,9 @@ export const en: CalibratorMessages = {
   },
   sharpness: {
     none: { label: 'No sharpening', hint: 'Text as it normally looks' },
-    mild: { label: 'Level 1 · Mild', hint: 'About +1.00 to +1.50' },
-    medium: { label: 'Level 2 · Medium', hint: 'About +1.75 to +2.25' },
-    strong: { label: 'Level 3 · Strong', hint: '+2.50 or more' },
+    mild: { label: 'Level 1 · Mild', hint: 'Gentle sharpening' },
+    medium: { label: 'Level 2 · Medium', hint: 'Balanced sharpening' },
+    strong: { label: 'Level 3 · Strong', hint: 'Maximum sharpening' },
   },
   mostChosen: 'Most chosen',
   spacingLabel: 'Separate letters that look "stuck together"',
@@ -60,9 +74,13 @@ export const en: CalibratorMessages = {
 export const ptBR: CalibratorMessages = {
   title: 'Leitura sem óculos',
   stepIndicator: 'Passo {current} de {total}',
-  step1Instruction:
-    'Tire os óculos, segure a tela na distância de costume e toque no quadro onde as letras parecem MENOS duplicadas ou sobrepostas.',
-  step2Instruction: 'Agora toque na frase em que letras e números estão mais fáceis de ler, sem precisar apertar os olhos.',
+  sizeInstruction: 'Tire os óculos e fique na distância de costume. Toque no MENOR texto que você consegue ler sem esforço.',
+  sizeGroupLabel: 'Qual o menor tamanho confortável?',
+  sizeOption: 'Tamanho {percent}%',
+  sharpnessInstruction: 'Mova a régua até as frases ficarem mais nítidas e toque na que estiver mais fácil de ler.',
+  radiusLabel: 'Tamanho do borrão',
+  radiusHint: 'Pequeno ← → Grande',
+  ghostInstruction: 'As letras parecem duplicadas? Toque no quadro onde parecem MENOS duplicadas (ou "Padrão" se não houver).',
   ghostGroupLabel: 'Qual quadro parece menos duplicado?',
   sharpnessGroupLabel: 'Qual frase está mais fácil de ler?',
   ghost: {
@@ -75,9 +93,9 @@ export const ptBR: CalibratorMessages = {
   },
   sharpness: {
     none: { label: 'Sem nitidez extra', hint: 'Texto como aparece normalmente' },
-    mild: { label: 'Nível 1 · Leve', hint: 'Cerca de +1,00 a +1,50' },
-    medium: { label: 'Nível 2 · Médio', hint: 'Cerca de +1,75 a +2,25' },
-    strong: { label: 'Nível 3 · Forte', hint: '+2,50 ou mais' },
+    mild: { label: 'Nível 1 · Leve', hint: 'Realce suave' },
+    medium: { label: 'Nível 2 · Médio', hint: 'Realce equilibrado' },
+    strong: { label: 'Nível 3 · Forte', hint: 'Realce máximo' },
   },
   mostChosen: 'Mais escolhido',
   spacingLabel: 'Separar letras que parecem "grudadas"',
@@ -94,9 +112,13 @@ export const ptBR: CalibratorMessages = {
 export const es: CalibratorMessages = {
   title: 'Leer sin gafas',
   stepIndicator: 'Paso {current} de {total}',
-  step1Instruction:
-    'Quítese las gafas, sostenga la pantalla a la distancia habitual y toque el recuadro donde las letras se vean MENOS duplicadas o superpuestas.',
-  step2Instruction: 'Ahora toque la frase donde las letras y los números se lean con más facilidad, sin entrecerrar los ojos.',
+  sizeInstruction: 'Quítese las gafas y colóquese a la distancia habitual. Toque el texto MÁS PEQUEÑO que puede leer sin esfuerzo.',
+  sizeGroupLabel: '¿Cuál es el tamaño más pequeño cómodo?',
+  sizeOption: 'Tamaño {percent}%',
+  sharpnessInstruction: 'Mueva la barra hasta que las frases se vean más nítidas y toque la más fácil de leer.',
+  radiusLabel: 'Tamaño del desenfoque',
+  radiusHint: 'Pequeño ← → Grande',
+  ghostInstruction: '¿Las letras se ven duplicadas? Toque el recuadro donde se vean MENOS duplicadas (o "Estándar" si no).',
   ghostGroupLabel: '¿Qué recuadro se ve menos duplicado?',
   sharpnessGroupLabel: '¿Qué frase es más fácil de leer?',
   ghost: {
@@ -109,9 +131,9 @@ export const es: CalibratorMessages = {
   },
   sharpness: {
     none: { label: 'Sin nitidez extra', hint: 'Texto como se ve normalmente' },
-    mild: { label: 'Nivel 1 · Leve', hint: 'Aprox. +1,00 a +1,50' },
-    medium: { label: 'Nivel 2 · Medio', hint: 'Aprox. +1,75 a +2,25' },
-    strong: { label: 'Nivel 3 · Fuerte', hint: '+2,50 o más' },
+    mild: { label: 'Nivel 1 · Leve', hint: 'Realce suave' },
+    medium: { label: 'Nivel 2 · Medio', hint: 'Realce equilibrado' },
+    strong: { label: 'Nivel 3 · Fuerte', hint: 'Realce máximo' },
   },
   mostChosen: 'Más elegido',
   spacingLabel: 'Separar letras que parecen "pegadas"',

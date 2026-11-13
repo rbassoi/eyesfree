@@ -15,16 +15,20 @@ export type {
   SharpnessLevel,
   SurfacePalette,
   ToneMapping,
+  UnsharpSpec,
   ValidationResult,
   VisionProfile,
 } from './types.js';
 
 export {
+  BLUR_RADIUS_RANGE,
+  BLUR_RADIUS_STEPS,
   CROWDING_LEVELS,
   CROWDING_SPACING,
   DEFAULT_PROFILE,
   DIRECTIONAL_STRENGTH,
   FONT_SCALE_RANGE,
+  FONT_SCALE_STEPS,
   GHOST_AXES,
   GHOST_AXIS_ANGLE,
   GHOST_SHADOW,
@@ -35,6 +39,8 @@ export {
   SHARPNESS_WEIGHT_DELTA,
   SURFACE_PALETTE,
   SURFACE_TONE,
+  TEXT_STROKE_PX,
+  UNSHARP_AMOUNT,
 } from './constants.js';
 
 export { deconvolutionKernel, directionalKernel, identityKernel, kernelSum, kernelToString, roundWeight } from './kernels.js';
@@ -52,7 +58,7 @@ export {
 } from './profile.js';
 export { decodeProfile, encodeProfile, parseProfile, PROFILE_CODE_PREFIX, serializeProfile } from './codec.js';
 export { createRenderPlan, ghostKernel, INACTIVE_PLAN } from './plan.js';
-export { compensatePixels, convolveRGBA, toneMapRGBA } from './image.js';
+export { compensatePixels, convolveRGBA, toneMapRGBA, unsharpRGBA } from './image.js';
 
 /** Library version. */
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';

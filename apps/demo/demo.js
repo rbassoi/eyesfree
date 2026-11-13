@@ -40,7 +40,9 @@ function renderStatus() {
   $('#status-badge').textContent = plan.active ? 'No-glasses mode: ON' : 'Standard view (with glasses)';
   $('#active-banner').hidden = !plan.active;
   if (profile) {
-    $('#profile-desc').textContent = `Axis: ${AXIS[profile.ghostAxis]} · Sharpness: ${profile.sharpness} · Spacing: ${SPACING[profile.crowding]}`;
+    $('#profile-desc').textContent =
+      `Size ${Math.round(profile.fontScale * 100)}% · Sharpness: ${profile.sharpness} (blur ${profile.blurRadius}px) · ` +
+      `Doubled: ${AXIS[profile.ghostAxis]} · Spacing: ${SPACING[profile.crowding]}`;
   }
   const code = engine.getShareCode();
   $('#share-code').textContent = code ?? '—';
@@ -59,10 +61,15 @@ $('#btn-sim').addEventListener('click', (e) => {
     undoSim();
     undoSim = null;
   } else {
-    undoSim = simulateDefocus($('#phone'));
+    undoSim = simulateDefocus($('#phone'), { blurPx: Number($('#sim-strength').value) });
   }
   btn.setAttribute('aria-pressed', String(!!undoSim));
   btn.textContent = undoSim ? 'Simulate eye: ON (blurred)' : 'Simulate eye: OFF';
+});
+$('#sim-strength').addEventListener('change', () => {
+  if (!undoSim) return;
+  undoSim();
+  undoSim = simulateDefocus($('#phone'), { blurPx: Number($('#sim-strength').value) });
 });
 $('#locale').addEventListener('change', (e) => calibrator.setAttribute('locale', e.target.value));
 $('#btn-dialog').addEventListener('click', () => openCalibratorDialog({ engine, locale: $('#locale').value }));

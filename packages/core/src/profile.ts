@@ -1,4 +1,5 @@
 import {
+  BLUR_RADIUS_RANGE,
   CROWDING_LEVELS,
   DEFAULT_PROFILE,
   FONT_SCALE_RANGE,
@@ -40,6 +41,9 @@ export function validateProfile(input: unknown): ValidationResult {
   if (!isGhostAxis(input.ghostAxis)) errors.push(`ghostAxis must be one of: ${GHOST_AXES.join(', ')}`);
   if (!isSharpnessLevel(input.sharpness)) errors.push(`sharpness must be one of: ${SHARPNESS_LEVELS.join(', ')}`);
   if (!isCrowdingLevel(input.crowding)) errors.push('crowding must be 0, 1, 2 or 3');
+  if (typeof input.blurRadius !== 'number' || !Number.isFinite(input.blurRadius) || input.blurRadius < BLUR_RADIUS_RANGE.min || input.blurRadius > BLUR_RADIUS_RANGE.max) {
+    errors.push(`blurRadius must be a number between ${BLUR_RADIUS_RANGE.min} and ${BLUR_RADIUS_RANGE.max}`);
+  }
   if (typeof input.intensity !== 'number' || !Number.isFinite(input.intensity) || input.intensity < INTENSITY_RANGE.min || input.intensity > INTENSITY_RANGE.max) {
     errors.push(`intensity must be a number between ${INTENSITY_RANGE.min} and ${INTENSITY_RANGE.max}`);
   }
@@ -82,6 +86,7 @@ export function normalizeProfile(input?: unknown): VisionProfile {
     enabled: typeof src.enabled === 'boolean' ? src.enabled : DEFAULT_PROFILE.enabled,
     ghostAxis: isGhostAxis(ghostAxis) ? ghostAxis : DEFAULT_PROFILE.ghostAxis,
     sharpness: isSharpnessLevel(sharpness) ? sharpness : DEFAULT_PROFILE.sharpness,
+    blurRadius: num(src.blurRadius, DEFAULT_PROFILE.blurRadius, BLUR_RADIUS_RANGE.min, BLUR_RADIUS_RANGE.max),
     crowding: isCrowdingLevel(crowding) ? crowding : DEFAULT_PROFILE.crowding,
     intensity: num(src.intensity, DEFAULT_PROFILE.intensity, INTENSITY_RANGE.min, INTENSITY_RANGE.max),
     surfaceCompensation:
@@ -109,6 +114,7 @@ export function profilesEqual(a: VisionProfile | null | undefined, b: VisionProf
     a.enabled === b.enabled &&
     a.ghostAxis === b.ghostAxis &&
     a.sharpness === b.sharpness &&
+    a.blurRadius === b.blurRadius &&
     a.crowding === b.crowding &&
     a.intensity === b.intensity &&
     a.surfaceCompensation === b.surfaceCompensation &&

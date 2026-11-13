@@ -1,6 +1,6 @@
 # `@eyesfree/calibrator` API
 
-`<eyesfree-calibrator>` is the two-step perceptual calibration wizard as a standard Web Component. It works in any framework or none.
+`<eyesfree-calibrator>` is the three-step perceptual calibration wizard (1 · text size, 2 · blur size + sharpening, 3 · doubled letters + spacing) as a standard Web Component. It works in any framework or none.
 
 ```bash
 npm install @eyesfree/calibrator
@@ -20,8 +20,8 @@ defineCalibrator();                       // or: import '@eyesfree/calibrator/de
 | Attribute | Description |
 |---|---|
 | `locale` | `en`, `pt-BR`, `pt`, `es`, or one you registered. Falls back to `<html lang>`, then `en`. |
-| `sample-letters` | Step-1 sample (default `E A O`). |
-| `sample-text` | Step-2 sentence (default "Payment of $158.90 confirmed"). Use a sentence typical of your app. |
+| `sample-letters` | Step-3 sample (default `E A O`). |
+| `sample-text` | Step-1 and step-2 sentence (default "Payment of $158.90 confirmed"). Use a sentence typical of your app. |
 | `hide-cancel` | Hides the Cancel button on step 1. |
 | `nonce` | CSP nonce for the injected stylesheet. |
 
@@ -34,7 +34,7 @@ defineCalibrator();                       // or: import '@eyesfree/calibrator/de
 | `suspendEngine` | `boolean` (true) | |
 | `messages` | `Partial<CalibratorMessages>` | Overrides merged over the locale. |
 | `profile` | `VisionProfile` | Current draft (get or set). |
-| `step` | `1 \| 2` | Current step (get or set). |
+| `step` | `1 \| 2 \| 3` | Current step (get or set). |
 
 ## Methods
 

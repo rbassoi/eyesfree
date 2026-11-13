@@ -29,7 +29,7 @@ validateProfile(p); // { valid: true, errors: [] }
 
 | Function | Description |
 |---|---|
-| `encodeProfile(profile)` | → `'EF1.vs211.100.100'` |
+| `encodeProfile(profile)` | → `'EF1.vs211.100.150.250'` |
 | `decodeProfile(code)` | → `VisionProfile` or `null` (strict) |
 | `serializeProfile(profile)` | → JSON string |
 | `parseProfile(raw)` | Accepts JSON, an EF1 code, an object, `null` or `''` → `VisionProfile` or `null` |
@@ -65,15 +65,16 @@ plan.textShadowCss;  // '-1.3px 0px 0px rgba(255,255,255,0.95), 1.1px 0px 0px rg
 
 | Function | Description |
 |---|---|
-| `compensatePixels(rgba, width, height, plan)` | Full raster pipeline (tone → kernels). Returns a new buffer. |
+| `compensatePixels(rgba, width, height, plan, pixelRatio = 1)` | Full raster pipeline (tone → kernels → unsharp). `pixelRatio` converts the plan's CSS-px radius to buffer pixels. Returns a new buffer. |
 | `convolveRGBA(rgba, width, height, kernel9)` | One 3×3 convolution. Alpha preserved, edges clamped. **Self-contained.** |
 | `toneMapRGBA(rgba, slope, intercept)` | In-place linear tone mapping. **Self-contained.** |
+| `unsharpRGBA(rgba, width, height, sigma, amount)` | Large-radius unsharp mask (separable Gaussian). **Self-contained.** |
 
 Use these in Node to pre-process images server-side (for example with `sharp` raw buffers), or in your own worker.
 
 ## Constants
 
-`DEFAULT_PROFILE`, `GHOST_AXES`, `SHARPNESS_LEVELS`, `CROWDING_LEVELS`, `SHARPNESS_PRESETS`, `DIRECTIONAL_STRENGTH`, `GHOST_AXIS_ANGLE`, `GHOST_SHADOW`, `CROWDING_SPACING`, `SHARPNESS_WEIGHT_DELTA`, `SURFACE_TONE`, `SURFACE_PALETTE`, `INTENSITY_RANGE`, `FONT_SCALE_RANGE`, `PROFILE_VERSION`, `VERSION`.
+`DEFAULT_PROFILE`, `BLUR_RADIUS_RANGE`, `BLUR_RADIUS_STEPS`, `FONT_SCALE_STEPS`, `UNSHARP_AMOUNT`, `TEXT_STROKE_PX`, `GHOST_AXES`, `SHARPNESS_LEVELS`, `CROWDING_LEVELS`, `SHARPNESS_PRESETS`, `DIRECTIONAL_STRENGTH`, `GHOST_AXIS_ANGLE`, `GHOST_SHADOW`, `CROWDING_SPACING`, `SHARPNESS_WEIGHT_DELTA`, `SURFACE_TONE`, `SURFACE_PALETTE`, `INTENSITY_RANGE`, `FONT_SCALE_RANGE`, `PROFILE_VERSION`, `VERSION`.
 
 ## Types
 

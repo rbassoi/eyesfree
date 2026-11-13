@@ -43,7 +43,27 @@ describe('EyesFree engine', () => {
     expect(filter).not.toBeNull();
     expect(filter.querySelector('feComponentTransfer')).not.toBeNull();
     const kernels = Array.from(filter.querySelectorAll('feConvolveMatrix')).map((n) => n.getAttribute('kernelMatrix'));
-    expect(kernels).toEqual(['0 0 0 -1.1 3.2 -1.1 0 0 0', '0 -0.95 0 -0.95 4.8 -0.95 0 -0.95 0']);
+    expect(kernels).toEqual(['0 0 0 -1.1 3.2 -1.1 0 0 0']);
+    // large-radius unsharp mask chained after the kernel
+    expect(filter.querySelector('feGaussianBlur')!.getAttribute('stdDeviation')).toBe('3');
+    const comp = filter.querySelector('feComposite')!;
+    expect([comp.getAttribute('k2'), comp.getAttribute('k3')]).toEqual(['2', '-1']);
+    expect(comp.getAttribute('in')).toBe(filter.querySelector('feConvolveMatrix')!.getAttribute('result'));
+    expect(root.style.getPropertyValue(CSS_VARS.textStroke)).toBe('0.3px');
+  });
+
+  it('magnifies text with zoom on the root children (opt-out with magnify: false)', async () => {
+    const ef = new EyesFree({ storage: false, sync: false });
+    await ef.init();
+    ef.apply({ fontScale: 1.5 });
+    expect(document.body.classList.contains(CLASSES.zoom)).toBe(true);
+    expect(document.body.style.getPropertyValue(CSS_VARS.fontScale)).toBe('1.5');
+    ef.apply({ fontScale: 1 });
+    expect(document.body.classList.contains(CLASSES.zoom)).toBe(false);
+    const ef2 = new EyesFree({ storage: false, sync: false, magnify: false });
+    await ef2.init();
+    ef2.apply({ fontScale: 1.5 });
+    expect(document.body.classList.contains(CLASSES.zoom)).toBe(false);
   });
 
   it('persists and restores through storage', async () => {
@@ -143,9 +163,10 @@ describe('EyesFree engine', () => {
   });
 
   it('produces static filter markup for SSR', () => {
-    const html = filterMarkup('x', createRenderPlan({ sharpness: 'mild' }));
+    const html = filterMarkup('x', createRenderPlan({ sharpness: 'mild', blurRadius: 0 }));
     expect(html).toContain('<filter id="x"');
     expect(html).toContain('kernelMatrix="0 -0.55 0 -0.55 3.2 -0.55 0 -0.55 0"');
+    expect(filterMarkup('y', createRenderPlan({ sharpness: 'mild' }))).toContain('<feGaussianBlur in="ef0" stdDeviation="3" result="ef1"/>');
   });
 });
 
@@ -186,6 +207,7 @@ describe('ImageCompensator', () => {
         buffer: new Uint8ClampedArray(img.data).buffer,
         tone: plan.tone,
         kernels: plan.kernels.map((k) => k.matrix),
+        unsharp: plan.unsharp,
       },
     });
     expect(posted[0]!.id).toBe(7);

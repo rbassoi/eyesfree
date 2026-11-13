@@ -15,7 +15,7 @@ export const apiStorage: StorageAdapter = {
     try {
       const res = await fetch('/api/me/preferences/eyesfree', { credentials: 'include' });
       if (res.ok) {
-        const { code } = await res.json();     // e.g. "EF1.hm211.100.100"
+        const { code } = await res.json();     // e.g. "EF1.hm211.100.150.250"
         if (code) cache.set(key, code);
         return code ?? cache.get(key);
       }
