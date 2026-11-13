@@ -1,0 +1,21 @@
+{
+  "name": "@eyesfree/core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic vision profile model, convolution kernels and render plans for EyesFree.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "src", "README.md", "LICENSE", "NOTICE"],
+  "sideEffects": false,
+  "keywords": ["accessibility", "a11y", "low-vision", "presbyopia", "myopia", "astigmatism", "deconvolution"],
+  "repository": { "type": "git", "url": "https://github.com/rbassoi/eyesfree.git", "directory": "packages/core" }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@eyesfree/react",
+  "version": "0.1.0",
+  "description": "React bindings for EyesFree: <EyesFreeProvider>, useEyesFree() and <EyesFreeCalibrator>.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "src", "README.md", "LICENSE", "NOTICE"],
+  "sideEffects": false,
+  "dependencies": {
+    "@eyesfree/calibrator": "0.1.0",
+    "@eyesfree/core": "0.1.0",
+    "@eyesfree/web": "0.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "keywords": ["react", "hooks", "accessibility", "low-vision"],
+  "repository": { "type": "git", "url": "https://github.com/rbassoi/eyesfree.git", "directory": "packages/react" }
+}

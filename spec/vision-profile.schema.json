@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rbassoi/eyesfree/spec/vision-profile.schema.json",
+  "title": "EyesFree VisionProfile",
+  "description": "A user's perceptual vision-compensation choices. Contains no medical data. See docs/profile-spec.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "enabled", "ghostAxis", "sharpness", "crowding", "intensity", "surfaceCompensation", "fontScale"],
+  "properties": {
+    "version": { "const": 1, "description": "Schema version." },
+    "enabled": { "type": "boolean", "description": "Whether compensation is currently applied." },
+    "ghostAxis": {
+      "enum": ["none", "horizontal", "vertical", "diagonal45", "diagonal135", "outline"],
+      "description": "Step 1: direction of perceived ghosting. Angles counter-clockwise from horizontal: horizontal=0°, diagonal45=45° (↗↙), vertical=90°, diagonal135=135° (↖↘). outline = all directions."
+    },
+    "sharpness": {
+      "enum": ["none", "mild", "medium", "strong"],
+      "description": "Step 2: isotropic deconvolution strength."
+    },
+    "crowding": {
+      "enum": [0, 1, 2, 3],
+      "description": "Anti-crowding spacing level."
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0.25,
+      "maximum": 2,
+      "default": 1,
+      "description": "Global multiplier for kernel weights and shadow offsets."
+    },
+    "surfaceCompensation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Compress luminance (white→0.90, black→0.04) to give halos headroom."
+    },
+    "fontScale": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 2,
+      "default": 1,
+      "description": "Text size multiplier hint for hosts that support it."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Informational timestamp of the last change."
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "enabled": true,
+      "ghostAxis": "horizontal",
+      "sharpness": "medium",
+      "crowding": 2,
+      "intensity": 1,
+      "surfaceCompensation": true,
+      "fontScale": 1
+    }
+  ]
+}

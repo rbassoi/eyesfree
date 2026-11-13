@@ -1,0 +1,35 @@
+{
+  "name": "@eyesfree/browser",
+  "version": "0.1.0",
+  "description": "EyesFree single-file browser bundle (ESM + IIFE global `eyesfree`), static worker and CSS. Drop-in <script> integration.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/eyesfree.js",
+  "module": "./dist/eyesfree.js",
+  "browser": "./dist/eyesfree.min.js",
+  "unpkg": "./dist/eyesfree.min.js",
+  "jsdelivr": "./dist/eyesfree.min.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/eyesfree.js"
+    },
+    "./min": "./dist/eyesfree.min.js",
+    "./esm.min": "./dist/eyesfree.esm.min.js",
+    "./worker": "./dist/eyesfree.worker.js",
+    "./eyesfree.css": "./dist/eyesfree.css",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "sideEffects": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@eyesfree/calibrator": "0.1.0",
+    "@eyesfree/core": "0.1.0",
+    "@eyesfree/web": "0.1.0"
+  },
+  "repository": { "type": "git", "url": "https://github.com/rbassoi/eyesfree.git", "directory": "packages/browser" }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "eyesfree-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EyesFree — perceptual optical compensation so people can read screens without their glasses.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/web",
+    "packages/calibrator",
+    "packages/react",
+    "packages/react-native",
+    "packages/browser"
+  ],
+  "scripts": {
+    "build": "node scripts/sync-legal.mjs && npm run typecheck && npm run build -w @eyesfree/browser",
+    "typecheck": "tsc -b packages/core packages/web packages/calibrator packages/react packages/react-native packages/browser",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "npm run demo:build && node scripts/serve.mjs apps/demo",
+    "demo:build": "npm run build && node scripts/build-demo.mjs",
+    "clean": "node scripts/clean.mjs",
+    "verify": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "esbuild": "^0.24.0",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

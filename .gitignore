@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+apps/demo/vendor/
+.DS_Store
+*.log
+packages/*/LICENSE
+packages/*/NOTICE
+packages/web/eyesfree.css

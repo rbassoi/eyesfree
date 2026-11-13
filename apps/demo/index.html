@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EyesFree Demo</title>
+  <meta name="description" content="EyesFree demo: read a phone screen without your glasses using perceptual calibration and optical pre-compensation." />
+  <link rel="stylesheet" href="./demo.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <h1>EyesFree <span>demo</span></h1>
+      <p>Perceptual optical compensation for reading without glasses. Open source, Apache-2.0.</p>
+    </div>
+    <a class="gh" href="https://github.com/rbassoi/eyesfree">Source on GitHub</a>
+  </header>
+
+  <!-- Developer toolbar (outside the compensated root) -->
+  <section class="toolbar" aria-label="Developer tools">
+    <div class="tool">
+      <span class="tool-label">Developer mode</span>
+      <p>Blur the phone to approximate an uncorrected eye, then calibrate and compare.</p>
+      <button id="btn-sim" class="tool-btn" aria-pressed="false">Simulate eye: OFF</button>
+    </div>
+    <div class="tool">
+      <label class="tool-label" for="locale">Calibrator language</label>
+      <select id="locale">
+        <option value="en">English</option>
+        <option value="pt-BR">Português (Brasil)</option>
+        <option value="es">Español</option>
+      </select>
+      <button id="btn-dialog" class="tool-btn">Open as dialog</button>
+    </div>
+    <div class="tool">
+      <span class="tool-label">Profile code</span>
+      <code id="share-code">—</code>
+      <div class="tool-row">
+        <button id="btn-copy" class="tool-btn" disabled>Copy share link</button>
+        <button id="btn-reset" class="tool-btn">Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="stage">
+    <!-- Phone frame. The defocus simulation is applied HERE, around the EyesFree root. -->
+    <div id="phone" class="phone">
+      <div id="app-root" class="app">
+        <header class="app-header">
+          <div>
+            <h2>SeniorBank</h2>
+            <p id="status-badge">Standard view (with glasses)</p>
+          </div>
+          <button class="glasses-btn" data-screen="calibration"><span aria-hidden="true">👓</span> No glasses?</button>
+        </header>
+
+        <div class="app-body">
+          <!-- Calibration screen -->
+          <section id="screen-calibration" hidden>
+            <eyesfree-calibrator id="calibrator"></eyesfree-calibrator>
+          </section>
+
+          <!-- Home screen -->
+          <section id="screen-home">
+            <div id="active-banner" class="banner" data-eyesfree-surface hidden>
+              <div>
+                <strong>✓ No-glasses mode on</strong>
+                <p id="profile-desc">Compensation applied on every screen.</p>
+              </div>
+              <button id="btn-disable" class="link-btn">Turn off</button>
+            </div>
+
+            <div class="card" data-eyesfree-surface>
+              <span class="muted">Available balance</span>
+              <div class="balance">$3,482.65</div>
+              <p class="small">Pension deposit received on Nov 5</p>
+            </div>
+
+            <div class="grid2">
+              <div class="card" data-eyesfree-surface>
+                <span class="icon" aria-hidden="true">📄</span>
+                <h3>Pay a bill</h3>
+                <p class="small">Power, water, phone and invoices</p>
+              </div>
+              <div class="card" data-eyesfree-surface>
+                <span class="icon" aria-hidden="true">💊</span>
+                <h3>Prescriptions</h3>
+                <p class="small">Medication reminder at 2 PM</p>
+              </div>
+            </div>
+
+            <div class="card" data-eyesfree-surface>
+              <h3 class="section-title">Recent receipts</h3>
+              <ul class="tx">
+                <li><div><b>Corner Pharmacy</b><span>Nov 12 · Debit card</span></div><b>− $84.50</b></li>
+                <li><div><b>Green Market Supermarket</b><span>Nov 10 · Instant transfer</span></div><b>− $216.30</b></li>
+                <li><div><b>City Power &amp; Light</b><span>Nov 8 · Autopay</span></div><b>− $142.80</b></li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <nav class="app-nav" aria-label="App">
+          <button data-screen="home"><span aria-hidden="true">🏠</span>Home</button>
+          <button data-screen="calibration"><span aria-hidden="true">👁️</span>Adjust vision</button>
+          <button data-eyesfree-toggle><span aria-hidden="true">⏻</span>On / off</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Web Worker demo -->
+    <section class="worker-demo" aria-labelledby="worker-title">
+      <h2 id="worker-title">Raster content · Web Worker</h2>
+      <p>
+        CSS filters only reach the DOM. Charts, maps or rendered PDFs drawn on a
+        <code>&lt;canvas&gt;</code> are compensated with <code>ImageCompensator</code>, which runs the
+        same kernels in a Web Worker and keeps the main thread free.
+      </p>
+      <div class="canvases">
+        <figure><canvas id="cv-src" width="320" height="140"></canvas><figcaption>Original</figcaption></figure>
+        <figure><canvas id="cv-out" width="320" height="140"></canvas><figcaption id="cv-caption">Compensated</figcaption></figure>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      EyesFree is a reading aid. It is <strong>not a medical device</strong> and does not replace glasses or an eye exam.
+      Built with EyesFree — <a href="https://github.com/rbassoi/eyesfree">github.com/rbassoi/eyesfree</a> (Apache-2.0).
+    </p>
+  </footer>
+
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>
