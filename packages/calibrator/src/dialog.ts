@@ -2,6 +2,7 @@ import type { VisionProfile } from '@eyesfree/core';
 import type { EyesFree } from '@eyesfree/web';
 import { CALIBRATOR_EVENTS, EyesFreeCalibratorElement } from './element.js';
 import type { CalibratorMessages } from './i18n.js';
+import type { DistanceMonitorLike } from './element.js';
 
 const DIALOG_STYLE_ID = 'eyesfree-dialog-styles';
 const DIALOG_CSS = `
@@ -22,6 +23,8 @@ export interface CalibratorDialogOptions {
   locale?: string;
   messages?: Partial<CalibratorMessages>;
   autoApply?: boolean;
+  /** Camera distance monitor (enables "Measure with the camera" in step 1). */
+  distanceMonitor?: DistanceMonitorLike | null;
   /** Accessible name of the dialog. Default: the calibrator title. */
   label?: string;
   doc?: Document;
@@ -62,6 +65,7 @@ export function openCalibratorDialog(options: CalibratorDialogOptions = {}): Cal
   const el = doc.createElement('eyesfree-calibrator') as EyesFreeCalibratorElement;
   el.engine = options.engine ?? null;
   el.autoApply = options.autoApply ?? true;
+  el.distanceMonitor = options.distanceMonitor ?? null;
   if (options.messages) el.messages = options.messages;
   if (options.locale) el.setAttribute('locale', options.locale);
   dialog.appendChild(el);

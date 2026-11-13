@@ -5,6 +5,8 @@ import {
   simulateDefocus,
   ImageCompensator,
   DOM_CHANGE_EVENT,
+  DistanceMonitor,
+  createDistanceGuard,
 } from './vendor/eyesfree.js';
 
 // 1. One call: engine + declarative [data-eyesfree-toggle] buttons.
@@ -12,11 +14,30 @@ const { engine } = mount({ root: '#app-root', openSelector: false });
 
 const $ = (sel) => document.querySelector(sel);
 
+// Camera distance monitor (opt-in) + on-screen guard ("move back a little").
+const monitor = new DistanceMonitor();
+createDistanceGuard({ engine, monitor, locale: 'en' });
+monitor.subscribe((r) => {
+  const btn = $('#btn-camera');
+  btn.setAttribute('aria-pressed', String(monitor.running));
+  btn.textContent = monitor.running ? '📷 Camera: ON' : '📷 Camera: OFF';
+  $('#camera-reading').textContent =
+    r.status === 'measuring' ? `≈ ${r.cm} cm (${r.estimate.method})`
+    : r.status === 'starting' ? 'starting…'
+    : r.status === 'no-face' ? 'no face found'
+    : r.status === 'error' ? `error: ${r.error?.name ?? r.error}`
+    : '—';
+});
+$('#btn-camera').addEventListener('click', () => {
+  if (monitor.running) monitor.stop();
+  else monitor.start().catch(() => {});
+});
+
 // 2. The calibrator opens as a wide modal dialog: from step 2 it magnifies itself so it
 //    stays readable from the distance the user moved back to.
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-open-calibrator]')) return;
-  const handle = openCalibratorDialog({ engine, locale: $('#locale').value });
+  const handle = openCalibratorDialog({ engine, locale: $('#locale').value, distanceMonitor: monitor });
   handle.element.start();
 });
 

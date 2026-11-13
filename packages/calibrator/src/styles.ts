@@ -89,6 +89,8 @@ eyesfree-calibrator * { box-sizing: border-box; }
 .efc-distance-text { font-size: 1.5rem; font-weight: 700; }
 .efc-list-compact { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .efc-card-label-lg { font-size: 1rem; color: var(--efc-fg); }
+.efc-camera { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.efc-measured { margin: 0; font-size: 1.4rem; font-weight: 800; text-align: center; color: var(--efc-confirm); }
 .efc-sample-text { font-size: 1.15rem; font-weight: 700; line-height: 1.35; }
 .efc-slider {
   display: block; background: #f1f5f9; border: 1px solid var(--efc-card-border);

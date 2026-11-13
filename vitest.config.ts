@@ -10,6 +10,7 @@ export default defineConfig({
       '@eyesfree/web': pkg('web'),
       '@eyesfree/calibrator': pkg('calibrator'),
       '@eyesfree/react': pkg('react', 'index.tsx'),
+      '@eyesfree/distance': pkg('distance'),
     },
   },
   test: {

@@ -1,4 +1,5 @@
 import {
+  nearestDistance,
   BLUR_RADIUS_STEPS,
   createRenderPlan,
   DEFAULT_PROFILE,
@@ -76,6 +77,17 @@ function formatDistance(cm: number, locale: string): string {
 
 const DEFAULT_SAMPLE_BG = '#e4e7ec';
 
+/**
+ * Minimal shape of a camera distance monitor (`DistanceMonitor` from `@eyesfree/distance`
+ * satisfies it). Kept structural so the calibrator never depends on the camera package.
+ */
+export interface DistanceMonitorLike {
+  readonly running: boolean;
+  start(): Promise<void>;
+  stop(): void;
+  subscribe(listener: (reading: { status: string; cm: number | null }) => void): () => void;
+}
+
 let uidCounter = 0;
 
 // SSR-safe base class.
@@ -111,6 +123,15 @@ export class EyesFreeCalibratorElement extends BaseElement {
    */
   suspendEngine = true;
   private releaseEngine: (() => void) | null = null;
+
+  /**
+   * Optional camera distance monitor. When set, step 1 offers "Measure with the camera",
+   * which selects the distance automatically.
+   */
+  distanceMonitor: DistanceMonitorLike | null = null;
+  private unsubscribeMonitor: (() => void) | null = null;
+  private startedMonitor = false;
+  private cameraState: 'off' | 'measuring' | 'error' = 'off';
 
   private _messages: Partial<CalibratorMessages> | null = null;
   private _draft: VisionProfile | null = null;
@@ -166,6 +187,7 @@ export class EyesFreeCalibratorElement extends BaseElement {
   /** Navigates to a step. */
   goTo(step: CalibratorStep): void {
     this._step = Math.min(CALIBRATOR_STEPS, Math.max(1, Math.round(step))) as CalibratorStep;
+    if (this._step !== 1) this.stopCamera();
     this.renderIfConnected(true);
     this.fire<{ step: CalibratorStep }>(CALIBRATOR_EVENTS.step, { step: this._step });
   }
@@ -213,6 +235,46 @@ export class EyesFreeCalibratorElement extends BaseElement {
   private release(): void {
     this.releaseEngine?.();
     this.releaseEngine = null;
+    this.stopCamera();
+  }
+
+  private async startCamera(): Promise<void> {
+    const monitor = this.distanceMonitor;
+    if (!monitor || this.unsubscribeMonitor) return;
+    this.cameraState = 'measuring';
+    this.unsubscribeMonitor = monitor.subscribe((r) => this.onReading(r));
+    this.renderIfConnected();
+    try {
+      if (!monitor.running) {
+        this.startedMonitor = true;
+        await monitor.start();
+      }
+    } catch {
+      this.stopCamera();
+      this.cameraState = 'error';
+      this.renderIfConnected();
+    }
+  }
+
+  private stopCamera(): void {
+    this.unsubscribeMonitor?.();
+    this.unsubscribeMonitor = null;
+    if (this.startedMonitor) this.distanceMonitor?.stop();
+    this.startedMonitor = false;
+    if (this.cameraState === 'measuring') this.cameraState = 'off';
+  }
+
+  private onReading(r: { status: string; cm: number | null }): void {
+    const out = this.querySelector('[data-measured]');
+    if (!out) return;
+    if (r.cm !== null && r.status === 'measuring') {
+      out.textContent = this.msgs.measuredDistance.replace('{distance}', formatDistance(r.cm, this.locale));
+      const nearest = nearestDistance(r.cm, DISTANCE_CHOICES);
+      const current = this.profile.viewingDistance || REFERENCE_READING_DISTANCE_CM;
+      if (this._step === 1 && nearest !== current) this.selectDistance(nearest);
+    } else {
+      out.textContent = this.msgs.measuring;
+    }
   }
 
   private get locale(): string {
@@ -276,7 +338,20 @@ export class EyesFreeCalibratorElement extends BaseElement {
 
     let body: string;
     if (this._step === 1) {
+      const camera = !this.distanceMonitor
+        ? ''
+        : this.cameraState === 'measuring'
+          ? `<div class="efc-camera">
+               <p class="efc-measured" data-measured aria-live="polite">${esc(m.measuring)}</p>
+               ${btn('camera-stop', 'efc-btn-secondary', `📷 ${esc(m.stopCamera)}`)}
+             </div>`
+          : `<div class="efc-camera">
+               ${this.cameraState === 'error' ? `<p class="efc-hint">${esc(m.cameraError)}</p>` : ''}
+               ${btn('camera', 'efc-btn-primary', `📷 ${esc(m.measureWithCamera)}`)}
+               <p class="efc-hint">${esc(m.cameraPrivacy)}</p>
+             </div>`;
       body = `
+      ${camera}
       <div class="efc-distance-sample" aria-hidden="true">
         <span class="efc-distance-letters">${letters}</span>
         <span class="efc-distance-text">${esc(m.distanceSampleText)}</span>
@@ -467,6 +542,13 @@ export class EyesFreeCalibratorElement extends BaseElement {
           break;
         case 'cancel':
           this.cancel();
+          break;
+        case 'camera':
+          void this.startCamera();
+          break;
+        case 'camera-stop':
+          this.stopCamera();
+          this.renderIfConnected();
           break;
       }
     }

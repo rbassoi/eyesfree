@@ -24,7 +24,8 @@ eyesfree/
 │  ├─ web/             @eyesfree/web           DOM engine, storage, SVG, CSS, Web Worker
 │  ├─ calibrator/      @eyesfree/calibrator    <eyesfree-calibrator> + dialog + i18n
 │  ├─ react/           @eyesfree/react         Provider, hooks, calibrator wrapper
-│  ├─ react-native/    @eyesfree/react-native  store, Text/Surface components, wizard
+│  ├─ react-native/    @eyesfree/react-native  store, Text/Surface components, wizard, distance hooks
+│  ├─ distance/        @eyesfree/distance      camera distance monitor (MediaPipe), "move back" guard
 │  └─ browser/         @eyesfree/browser       esbuild bundles (IIFE + ESM), worker.js, css
 ├─ apps/demo/          static demo (uses only the public browser bundle)
 ├─ spec/               JSON Schema of the profile (language-neutral contract)
@@ -45,6 +46,9 @@ graph TD
   react["@eyesfree/react"] --> cal
   react --> web
   rn["@eyesfree/react-native"] --> core
+  dist["@eyesfree/distance"] --> web
+  dist --> core
+  cal -. "DistanceMonitorLike (structural)" .-> dist
   browser["@eyesfree/browser<br/><small>bundle</small>"] --> cal
   browser --> web
   browser --> core
@@ -207,6 +211,8 @@ flowchart LR
 - Very large roots on low-end Android devices may scroll less smoothly with `scope: 'root'`. Prefer `opt-in` for long infinite lists.
 
 ## 9. Security & privacy
+
+- **Camera (opt-in):** `@eyesfree/distance` analyses frames on the device and discards them. No frame, landmark or face data is stored or transmitted. Only the derived distance (a number) leaves the monitor. The camera runs only between `start()` and `stop()`, and the guard always shows a "turn off camera" button. MediaPipe code and model are fetched from public CDNs unless you self-host them.
 
 - No network access, telemetry, `eval` or `innerHTML` built from user input (the wizard escapes every message and attribute).
 - The only dynamic code path is the worker built from library source. Use `workerUrl` under strict CSP.

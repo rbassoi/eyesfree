@@ -19,7 +19,7 @@ export {
   SHARPNESS_OPTIONS,
   sizeOptionsAround,
 } from './element.js';
-export type { CalibratorChangeDetail, CalibratorCompleteDetail, CalibratorStep } from './element.js';
+export type { CalibratorChangeDetail, CalibratorCompleteDetail, CalibratorStep, DistanceMonitorLike } from './element.js';
 export { en, es, formatStep, LOCALES, mergeMessages, ptBR, registerLocale, resolveLocale } from './i18n.js';
 export type { CalibratorMessages } from './i18n.js';
 export { CALIBRATOR_CSS, CALIBRATOR_STYLE_ID, ensureCalibratorStyles } from './styles.js';

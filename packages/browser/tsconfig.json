@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist", "emitDeclarationOnly": true },
   "include": ["src"],
-  "references": [{ "path": "../core" }, { "path": "../web" }, { "path": "../calibrator" }]
+  "references": [{ "path": "../core" }, { "path": "../web" }, { "path": "../calibrator" }, { "path": "../distance" }]
 }

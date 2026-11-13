@@ -1,6 +1,6 @@
 {
   "name": "@eyesfree/web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DOM engine for EyesFree: applies optical compensation (SVG deconvolution filters, ghost cancellation, anti-crowding) to any web app, plus a Web Worker image compensator.",
   "license": "Apache-2.0",
   "type": "module",
@@ -18,7 +18,7 @@
   "files": ["dist", "src", "eyesfree.css", "README.md", "LICENSE", "NOTICE"],
   "sideEffects": ["*.css"],
   "dependencies": {
-    "@eyesfree/core": "0.3.0"
+    "@eyesfree/core": "0.4.0"
   },
   "keywords": ["accessibility", "a11y", "low-vision", "svg-filter", "web-worker", "presbyopia"],
   "repository": { "type": "git", "url": "https://github.com/rbassoi/eyesfree.git", "directory": "packages/web" }

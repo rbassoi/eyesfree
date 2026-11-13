@@ -62,3 +62,14 @@ describe('@eyesfree/react-native', () => {
     expect(p).toMatchObject({ ghostAxis: 'vertical', sharpness: 'mild', crowding: 1 });
   });
 });
+
+describe('@eyesfree/react-native distance helpers', () => {
+  it('turns eye positions into a distance with the phone estimator', async () => {
+    const { measurementFromEyes, createPhoneDistanceEstimator } = await import('../src/distance-math.js');
+    const { focalLengthPx, CAMERA_FOV_DEG } = await import('@eyesfree/core');
+    const f = focalLengthPx(720, CAMERA_FOV_DEG.phoneFront);
+    const ipdPx = (f * 63) / 450; // 63 mm IPD at 45 cm
+    const m = measurementFromEyes({ x: 300, y: 400 }, { x: 300 + ipdPx, y: 400 }, 720);
+    expect(createPhoneDistanceEstimator({ smoothing: 1 }).update(m)!.cm).toBe(45);
+  });
+});

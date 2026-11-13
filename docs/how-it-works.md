@@ -44,6 +44,8 @@ Magnifying by `distance / 40 cm` restores the normal angular size of the text:
 
 This was confirmed by a +2.50 user, who read sharply at 1 m with 250 %. The calibrator's first two steps implement exactly this (`viewingDistance`, `fontScale`, `suggestFontScale()`). The sharpening techniques below are for people who must stay close to the screen. They improve legibility but cannot make the text sharp.
 
+**Computer vs phone.** On a computer, sitting 1–1.5 m away is easy, so text can be made truly sharp. A phone is limited by arm length (≈ 50–65 cm): that is sharp only for milder presbyopia, and with stronger reading prescriptions a phone gives *more legible* rather than sharp text. Calibrate each device separately; profiles are stored per device. The optional camera guard ([guide](integrations/distance.md)) measures the distance and reminds users to stay where they see sharply.
+
 For **myopia** the situation is reversed: myopes usually see well up close without glasses, so bringing the screen nearer helps. Nothing on this page helps when the eye cannot focus at any practical distance; only lenses do.
 
 ## 2a. Technique 0: magnification

@@ -13,6 +13,14 @@ export interface CalibratorMessages {
   /** Label for the 40 cm option (normal reading distance). */
   distanceNormal: string;
   distanceSampleText: string;
+  /** Camera distance measurement (only shown when a distance monitor is attached). */
+  measureWithCamera: string;
+  stopCamera: string;
+  measuring: string;
+  /** Template with `{distance}`. */
+  measuredDistance: string;
+  cameraError: string;
+  cameraPrivacy: string;
   /** Step 2 — text size. */
   sizeInstruction: string;
   /** Short sample shown at each candidate size. */
@@ -53,6 +61,12 @@ export const en: CalibratorMessages = {
   distanceOption: 'About {distance}',
   distanceNormal: 'Normal reading distance',
   distanceSampleText: 'Payment of $158.90',
+  measureWithCamera: 'Measure with the camera',
+  stopCamera: 'Turn off camera',
+  measuring: 'Looking for your face…',
+  measuredDistance: 'You are about {distance} from the screen',
+  cameraError: 'The camera is not available. Choose the distance below.',
+  cameraPrivacy: 'The image is analysed on this device only and never saved or sent.',
   sizeInstruction: 'From where you are now, tap the SMALLEST text you can read comfortably.',
   sizeSample: '$84.50 · 2 PM',
   moreAdjustments: 'More adjustments',
@@ -100,6 +114,12 @@ export const ptBR: CalibratorMessages = {
   distanceOption: 'Cerca de {distance}',
   distanceNormal: 'Distância normal de leitura',
   distanceSampleText: 'Pagamento de R$ 158,90',
+  measureWithCamera: 'Medir com a câmera',
+  stopCamera: 'Desligar câmera',
+  measuring: 'Procurando seu rosto…',
+  measuredDistance: 'Você está a cerca de {distance} da tela',
+  cameraError: 'A câmera não está disponível. Escolha a distância abaixo.',
+  cameraPrivacy: 'A imagem é analisada só neste aparelho; nunca é salva nem enviada.',
   sizeInstruction: 'De onde você está agora, toque no MENOR texto que consegue ler com conforto.',
   sizeSample: 'R$ 84,50 · 14h',
   moreAdjustments: 'Mais ajustes',
@@ -146,6 +166,12 @@ export const es: CalibratorMessages = {
   distanceOption: 'Unos {distance}',
   distanceNormal: 'Distancia normal de lectura',
   distanceSampleText: 'Pago de $158,90',
+  measureWithCamera: 'Medir con la cámara',
+  stopCamera: 'Apagar cámara',
+  measuring: 'Buscando su rostro…',
+  measuredDistance: 'Está a unos {distance} de la pantalla',
+  cameraError: 'La cámara no está disponible. Elija la distancia abajo.',
+  cameraPrivacy: 'La imagen se analiza solo en este dispositivo; nunca se guarda ni se envía.',
   sizeInstruction: 'Desde donde está ahora, toque el texto MÁS PEQUEÑO que puede leer con comodidad.',
   sizeSample: '$84,50 · 14 h',
   moreAdjustments: 'Más ajustes',

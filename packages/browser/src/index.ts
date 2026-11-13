@@ -22,6 +22,7 @@ import type { CalibratorDialogHandle } from '@eyesfree/calibrator';
 export * from '@eyesfree/core';
 export * from '@eyesfree/web';
 export * from '@eyesfree/calibrator';
+export * from '@eyesfree/distance';
 
 export interface MountOptions extends EyesFreeOptions {
   /** Locale for the calibrator dialog. */

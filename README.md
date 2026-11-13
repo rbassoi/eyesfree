@@ -5,7 +5,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Zero runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen)
-![Bundle](https://img.shields.io/badge/browser%20bundle-15%20kB%20gz-informational)
+![Bundle](https://img.shields.io/badge/browser%20bundle-23%20kB%20gz-informational)
 
 **▶ [Live demo](https://rbassoi.github.io/eyesfree/)**
 
@@ -42,6 +42,7 @@ No diopters, no medical data, no account: just "which one looks better?".
 - 🌐 **Drop-in web engine**: one call applies compensation to any page, PWA, WebView, Electron, Capacitor or Ionic app.
 - 🧩 **`<eyesfree-calibrator>` Web Component**: works with React, Vue, Angular, Svelte, Solid, Lit or plain HTML. Accessible (WAI-ARIA radio groups, keyboard navigation, 56 px targets) and localised (English, Português, Español, plus your own).
 - ⚛️ **React** and 📱 **React Native / Expo** bindings.
+- 📷 **Camera distance guard** (opt-in, on-device): measures how far you sit, picks the distance in the calibrator and warns "move back a little" when you get too close. Works for sites on a computer (webcam + MediaPipe) and apps on a phone (React Native / native helpers).
 - 🧵 **Web Worker image compensator** for canvas, charts, maps and rendered PDFs. It produces bit-identical output to the main-thread fallback.
 - 🔗 **Portable profile code** (`EF1.nn211.100.250.300.100`): hand a profile from a native shell to a WebView, a QR code, a deep link or a support agent.
 - 💾 **Pluggable storage**: localStorage, AsyncStorage, IndexedDB or your own backend API.
@@ -121,6 +122,7 @@ More recipes, covering Vue, Angular, Svelte, Next.js, Capacitor, Flutter, iOS, A
 | [`@eyesfree/calibrator`](packages/calibrator) | `<eyesfree-calibrator>` Web Component, dialog helper, i18n. | You want the ready-made wizard. |
 | [`@eyesfree/react`](packages/react) | `EyesFreeProvider`, `useEyesFree`, `EyesFreeCalibrator`. | React web apps. |
 | [`@eyesfree/react-native`](packages/react-native) | Provider, `EyesFreeText`, `EyesFreeSurface`, native wizard. | React Native / Expo. |
+| [`@eyesfree/distance`](packages/distance) | Camera distance monitor (MediaPipe, lazy-loaded), "move back" guard, calibrator integration. | You want measured distance and reminders. |
 | [`@eyesfree/browser`](packages/browser) | Everything in one file (IIFE global `eyesfree` + ESM), static worker and CSS. | `<script>` tag, CMS, no build step. |
 
 ## Architecture
@@ -137,7 +139,8 @@ A user choice becomes a **`VisionProfile`** (what the user picked). `createRende
 | 🔬 [How it works](docs/how-it-works.md) | The optics and maths, tuning, limitations |
 | 📄 [Profile & render-plan spec](docs/profile-spec.md) | Data contracts, EF1 code, JSON Schema, porting guide |
 | 🔌 [Integrations](docs/integrations/README.md) | Step-by-step recipes for every platform |
-| 📚 API reference | [core](docs/api/core.md) · [web](docs/api/web.md) · [calibrator](docs/api/calibrator.md) · [react](docs/api/react.md) · [react-native](docs/api/react-native.md) · [browser](docs/api/browser.md) |
+| 📷 [Camera distance](docs/integrations/distance.md) | Computer vs phone, privacy, accuracy, React Native / iOS / Android recipes |
+| 📚 API reference | [core](docs/api/core.md) · [web](docs/api/web.md) · [calibrator](docs/api/calibrator.md) · [distance](docs/api/distance.md) · [react](docs/api/react.md) · [react-native](docs/api/react-native.md) · [browser](docs/api/browser.md) |
 | 🤝 [Contributing](CONTRIBUTING.md) | Dev setup, conventions, release process |
 
 ## Run it locally
@@ -147,7 +150,7 @@ git clone https://github.com/rbassoi/eyesfree.git
 cd eyesfree
 npm install
 npm run demo        # builds everything and serves http://localhost:5173
-npm test            # 57 tests: core maths, engine, worker, Web Component, React, React Native
+npm test            # 68 tests: core maths, engine, worker, Web Component, React, React Native
 ```
 
 In the demo, press **Simulate eye** to blur the phone the way an uncorrected eye would. Then calibrate and compare.

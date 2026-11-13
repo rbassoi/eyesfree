@@ -65,4 +65,16 @@ export { createRenderPlan, ghostKernel, INACTIVE_PLAN } from './plan.js';
 export { compensatePixels, convolveRGBA, toneMapRGBA, unsharpRGBA } from './image.js';
 
 /** Library version. */
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
+export {
+  CAMERA_FOV_DEG,
+  DEFAULT_IPD_MM,
+  distanceFromSize,
+  distanceStatus,
+  FaceDistanceEstimator,
+  focalFromKnownDistance,
+  focalLengthPx,
+  IRIS_DIAMETER_MM,
+  nearestDistance,
+} from './distance.js';
+export type { DistanceEstimate, DistanceStatus, FaceDistanceEstimatorOptions, FaceMeasurement } from './distance.js';

@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-13
+
+### Added
+- **`@eyesfree/distance`** (new package): opt-in, on-device camera distance measurement.
+  - `DistanceMonitor`: front camera + MediaPipe Face Landmarker (Apache-2.0, lazy-loaded,
+    self-hostable). Iris diameter (11.7 mm) is used up close and *learns the user's own eye
+    spacing*, which then measures robustly from 1 m+. Face-sized square crops (tracking or
+    grid scan) find faces too small for the detector in the full frame. ±20 % uncalibrated,
+    ≈ ±5 % after `calibrate(knownCm)`.
+  - `createDistanceGuard()`: large, magnified "move back a little" hint (en / pt / es).
+- Calibrator: "📷 Measure with the camera" in step 1 selects the distance automatically
+  (`distanceMonitor` property / `openCalibratorDialog({ distanceMonitor })`).
+- Core: `FaceDistanceEstimator`, `focalLengthPx`, `distanceFromSize`, `focalFromKnownDistance`,
+  `distanceStatus`, `nearestDistance`, `IRIS_DIAMETER_MM`, `DEFAULT_IPD_MM`, `CAMERA_FOV_DEG`.
+- React Native: `measurementFromEyes`, `createPhoneDistanceEstimator`, `useDistanceEstimator`,
+  `useDistanceStatus`, `<EyesFreeDistanceHint>`; documented recipes for VisionCamera + ML Kit,
+  ARKit (TrueDepth) and Android ML Kit.
+- Docs: [camera distance guide](docs/integrations/distance.md), covering sites on a computer
+  vs apps on a phone (arm's length limits phone use for stronger reading prescriptions).
+- Demo: camera toggle, live reading, and the distance guard.
+
 ## [0.3.0] - 2026-11-13
 
 A +2.50 reading-glasses user still could not see anything sharp at 30 cm with 0.2. Screen

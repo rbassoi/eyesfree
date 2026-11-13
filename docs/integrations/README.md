@@ -13,6 +13,7 @@ Pick your platform. Every guide ends with the same checklist, so the user experi
 | iOS (SwiftUI/UIKit), Android (Compose/Views) | [native.md](native.md) | reference snippets |
 | Sync profiles across devices through your backend | [backend-sync.md](backend-sync.md) | `StorageAdapter` |
 | Canvas, charts, maps, PDF viewers | [raster-content.md](raster-content.md) | `ImageCompensator` |
+| Camera distance: sites on a computer **and** apps on a phone | [distance.md](distance.md) | `@eyesfree/distance` + RN helpers |
 
 ## UX checklist (all platforms)
 

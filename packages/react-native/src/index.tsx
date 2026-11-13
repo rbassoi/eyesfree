@@ -138,3 +138,11 @@ export function EyesFreeSurface({ style, kind = 'background', ...rest }: EyesFre
   const extra: ViewStyle = plan ? nativeSurfaceStyle(plan, kind) : {};
   return createElement(View, { ...rest, style: [style, extra] });
 }
+export {
+  createPhoneDistanceEstimator,
+  EyesFreeDistanceHint,
+  measurementFromEyes,
+  useDistanceEstimator,
+  useDistanceStatus,
+} from './distance.js';
+export type { EyesFreeDistanceHintProps } from './distance.js';

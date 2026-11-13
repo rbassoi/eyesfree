@@ -1,6 +1,6 @@
 {
   "name": "@eyesfree/browser",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "EyesFree single-file browser bundle (ESM + IIFE global `eyesfree`), static worker and CSS. Drop-in <script> integration.",
   "license": "Apache-2.0",
   "type": "module",
@@ -27,9 +27,10 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@eyesfree/calibrator": "0.3.0",
-    "@eyesfree/core": "0.3.0",
-    "@eyesfree/web": "0.3.0"
+    "@eyesfree/calibrator": "0.4.0",
+    "@eyesfree/core": "0.4.0",
+    "@eyesfree/distance": "0.4.0",
+    "@eyesfree/web": "0.4.0"
   },
   "repository": { "type": "git", "url": "https://github.com/rbassoi/eyesfree.git", "directory": "packages/browser" }
 }
